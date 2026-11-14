@@ -1,0 +1,27 @@
+@import "tailwindcss";
+
+@theme inline {
+  /* Georgia Tech accents. Use navy for text; gold fails contrast as text on white. */
+  --color-gt-gold: #b3a369;
+  --color-gt-navy: #003057;
+
+  --color-background: #ffffff;
+  --color-surface: #f6f5f1;
+  --color-foreground: #14212b;
+  --color-muted: #5b6770;
+  --color-border: #e4e2da;
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--color-surface);
+  color: var(--color-foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-tap-highlight-color: transparent;
+}
