@@ -1,24 +1,40 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ContributionGridPlaceholder } from "@/components/profile/ContributionGridPlaceholder";
+import { ContributionGrid } from "@/components/profile/ContributionGrid";
+import { FreezeControl } from "@/components/profile/FreezeControl";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProjectGrid } from "@/components/profile/ProjectGrid";
 import { buttonSecondary } from "@/components/ui/styles";
 import { isProfileComplete } from "@/lib/auth/post-sign-in";
 import type { Profile } from "@/lib/auth/session";
 import type { ProfileProject } from "@/lib/profile/queries";
+import type { ActivityWeek, MyStreakStatus } from "@/lib/streaks/queries";
 
 type ProfileViewProps = {
   profile: Profile;
-  projects: ProfileProject[];
+  projects: (ProfileProject & { streak?: number })[];
   isOwn: boolean;
+  /** Personal streak, in weeks. */
+  streak: number;
+  /** Weekly activity for the contribution grid, oldest first. */
+  activity: ActivityWeek[];
+  /** Your own freeze allowance. Only passed on your own profile. */
+  freeze?: Pick<MyStreakStatus, "freezesLeft" | "freezableWeek">;
   /** Shown in the header on someone else's profile, e.g. a follow button. */
   action?: ReactNode;
 };
 
 
 /** A person's profile. Works for your own profile and, later, anyone else's. */
-export function ProfileView({ profile, projects, isOwn, action }: ProfileViewProps) {
+export function ProfileView({
+  profile,
+  projects,
+  isOwn,
+  action,
+  streak,
+  activity,
+  freeze,
+}: ProfileViewProps) {
   return (
     <div className="flex flex-col gap-7">
       {isOwn && !isProfileComplete(profile) ? (
@@ -31,7 +47,7 @@ export function ProfileView({ profile, projects, isOwn, action }: ProfileViewPro
         </Link>
       ) : null}
 
-      <ProfileHeader profile={profile} isOwn={isOwn} action={action} />
+      <ProfileHeader profile={profile} isOwn={isOwn} action={action} streak={streak} />
 
       <section aria-labelledby="skills-heading">
         <h2 id="skills-heading" className="mb-3 text-lg font-semibold text-gt-navy">
@@ -76,7 +92,14 @@ export function ProfileView({ profile, projects, isOwn, action }: ProfileViewPro
 
       <section>
         <h2 className="mb-3 text-lg font-semibold text-gt-navy">Activity</h2>
-        <ContributionGridPlaceholder />
+        <ContributionGrid weeks={activity} />
+        {isOwn && freeze && activity.length > 0 ? (
+          <FreezeControl
+            freezesLeft={freeze.freezesLeft}
+            freezableWeek={freeze.freezableWeek}
+            currentWeek={activity[activity.length - 1].week_start}
+          />
+        ) : null}
       </section>
     </div>
   );

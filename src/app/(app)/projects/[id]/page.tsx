@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getMyFollows } from "@/lib/follows/queries";
 import { isUuid } from "@/lib/projects/constants";
 import { getProject, getProjectPosts } from "@/lib/projects/queries";
+import { withProjectStreaks } from "@/lib/streaks/queries";
 
 export const metadata: Metadata = { title: "Project" };
 
@@ -40,9 +41,10 @@ async function Project({ id }: { id: string }) {
     );
   }
 
-  const [posts, follows] = await Promise.all([
+  const [posts, follows, [{ streak }]] = await Promise.all([
     getProjectPosts(project.id, user.id),
     getMyFollows(user.id),
+    withProjectStreaks([{ id: project.id }]),
   ]);
   const canPost =
     project.owner.id === user.id ||
@@ -53,6 +55,7 @@ async function Project({ id }: { id: string }) {
       project={project}
       posts={posts}
       canPost={canPost}
+      streak={streak}
       action={
         canPost ? null : (
           <FollowButton

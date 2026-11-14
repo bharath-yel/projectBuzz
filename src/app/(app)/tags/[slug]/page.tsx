@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getProjectsByTag, getTagBySlug } from "@/lib/explore/queries";
 import { getFollowerCount, getMyFollows } from "@/lib/follows/queries";
 import { TAG_TYPE_LABEL } from "@/lib/projects/constants";
+import { withProjectStreaks } from "@/lib/streaks/queries";
 
 export const metadata: Metadata = { title: "Tag" };
 
@@ -44,7 +45,7 @@ async function TagView({ slug }: { slug: string }) {
   }
 
   const [projects, follows, followers] = await Promise.all([
-    getProjectsByTag(tag.id),
+    getProjectsByTag(tag.id).then(withProjectStreaks),
     getMyFollows(user.id),
     getFollowerCount("tag", tag.id),
   ]);

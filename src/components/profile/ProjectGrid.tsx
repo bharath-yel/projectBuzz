@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { EmptyState } from "@/components/EmptyState";
+import { StreakBadge } from "@/components/StreakBadge";
 import type { Enums } from "@/lib/database.types";
 import { STAGE_LABEL } from "@/lib/projects/constants";
 
@@ -13,6 +14,8 @@ export type ProjectCardData = {
   /** Set on profiles, where a card may be a project the person contributes to. */
   role?: "owner" | "contributor";
   roleLabel?: string | null;
+  /** The project's streak in weeks, when known. */
+  streak?: number;
 };
 
 function ProjectCard({ project }: { project: ProjectCardData }) {
@@ -39,6 +42,11 @@ function ProjectCard({ project }: { project: ProjectCardData }) {
             {project.title.trim().charAt(0).toUpperCase()}
           </div>
         )}
+        {project.streak ? (
+          <span className="absolute top-2 right-2">
+            <StreakBadge weeks={project.streak} variant="compact" />
+          </span>
+        ) : null}
         {project.visibility === "private" ? (
           <span className="absolute top-2 left-2 rounded-full bg-gt-navy/85 px-2 py-0.5 text-[11px] font-semibold text-white">
             Private

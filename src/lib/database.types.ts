@@ -448,6 +448,32 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      my_streak_status: {
+        Args: never
+        Returns: {
+          freezable_week: string
+          freezes_left: number
+          streak: number
+        }[]
+      }
+      project_streaks: {
+        Args: { p_project_ids: string[] }
+        Returns: {
+          project_id: string
+          streak: number
+        }[]
+      }
+      use_streak_freeze: { Args: never; Returns: string }
+      user_activity_weeks: {
+        Args: { p_user_id: string; p_weeks?: number }
+        Returns: {
+          frozen: boolean
+          paused: boolean
+          post_count: number
+          week_start: string
+        }[]
+      }
+      user_streak: { Args: { p_user_id: string }; Returns: number }
     }
     Enums: {
       attachment_type: "photo" | "video" | "pdf" | "link" | "file"

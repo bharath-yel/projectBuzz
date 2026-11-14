@@ -10,6 +10,7 @@ import { getCurrentUser } from "@/lib/auth/session";
 import { getPublicProjects } from "@/lib/explore/queries";
 import { TAG_TYPE_LABEL } from "@/lib/projects/constants";
 import { getAllTags } from "@/lib/projects/queries";
+import { withProjectStreaks } from "@/lib/streaks/queries";
 
 export const metadata: Metadata = { title: "Explore" };
 
@@ -34,7 +35,10 @@ export default function ExplorePage({ searchParams }: { searchParams: SearchPara
 
 async function Explore({ search }: { search: string }) {
   await getCurrentUser();
-  const [tags, projects] = await Promise.all([getAllTags(), getPublicProjects(search || null)]);
+  const [tags, projects] = await Promise.all([
+    getAllTags(),
+    getPublicProjects(search || null).then(withProjectStreaks),
+  ]);
 
   return (
     <div className="flex flex-col gap-8">

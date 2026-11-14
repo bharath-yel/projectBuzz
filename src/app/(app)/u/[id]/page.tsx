@@ -11,6 +11,7 @@ import { getProfileById } from "@/lib/explore/queries";
 import { getMyFollows } from "@/lib/follows/queries";
 import { getProfileProjects } from "@/lib/profile/queries";
 import { isUuid } from "@/lib/projects/constants";
+import { getActivityWeeks, getUserStreak, withProjectStreaks } from "@/lib/streaks/queries";
 
 export const metadata: Metadata = { title: "Profile" };
 
@@ -42,9 +43,11 @@ async function UserProfile({ id }: { id: string }) {
     );
   }
 
-  const [projects, follows] = await Promise.all([
-    getProfileProjects(profile.id),
+  const [projects, follows, streak, activity] = await Promise.all([
+    getProfileProjects(profile.id).then(withProjectStreaks),
     getMyFollows(user.id),
+    getUserStreak(profile.id),
+    getActivityWeeks(profile.id),
   ]);
 
   return (
@@ -52,6 +55,8 @@ async function UserProfile({ id }: { id: string }) {
       profile={profile}
       projects={projects}
       isOwn={false}
+      streak={streak}
+      activity={activity}
       action={
         <FollowButton
           type="user"

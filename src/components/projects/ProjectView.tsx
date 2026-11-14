@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { Avatar } from "@/components/Avatar";
 import { EmptyState } from "@/components/EmptyState";
 import { PostCard } from "@/components/posts/PostCard";
+import { StreakBadge } from "@/components/StreakBadge";
 import { buttonPrimary } from "@/components/ui/styles";
 import { STAGE_LABEL } from "@/lib/projects/constants";
 import type { ProjectDetail, TimelinePost } from "@/lib/projects/queries";
@@ -13,11 +14,13 @@ type ProjectViewProps = {
   posts: TimelinePost[];
   /** True for the owner and contributors: they can post updates. */
   canPost: boolean;
+  /** The project's streak, in weeks. */
+  streak: number;
   /** Shown beside the title for people who are not on the project, e.g. a follow button. */
   action?: ReactNode;
 };
 
-export function ProjectView({ project, posts, canPost, action }: ProjectViewProps) {
+export function ProjectView({ project, posts, canPost, action, streak }: ProjectViewProps) {
   const people = [
     { ...project.owner, label: "Owner" },
     ...project.contributors.map((person) => ({
@@ -59,6 +62,7 @@ export function ProjectView({ project, posts, canPost, action }: ProjectViewProp
               {project.visibility === "private" ? (
                 <span className="rounded-full bg-gt-navy px-2.5 py-1 text-white">Private</span>
               ) : null}
+              <StreakBadge weeks={streak} />
             </div>
             {action}
           </div>

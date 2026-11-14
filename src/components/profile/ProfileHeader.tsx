@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { Avatar } from "@/components/Avatar";
+import { StreakBadge } from "@/components/StreakBadge";
 import { buttonSecondary, buttonText } from "@/components/ui/styles";
 import { signOut } from "@/lib/auth/actions";
 import type { Profile } from "@/lib/auth/session";
@@ -11,9 +12,11 @@ type ProfileHeaderProps = {
   isOwn: boolean;
   /** Shown on someone else's profile, e.g. a follow button. */
   action?: ReactNode;
+  /** Personal streak, in weeks. */
+  streak: number;
 };
 
-export function ProfileHeader({ profile, isOwn, action }: ProfileHeaderProps) {
+export function ProfileHeader({ profile, isOwn, action, streak }: ProfileHeaderProps) {
   return (
     <header className="rounded-2xl border border-border bg-background p-5">
       <div className="flex items-center gap-4">
@@ -33,6 +36,11 @@ export function ProfileHeader({ profile, isOwn, action }: ProfileHeaderProps) {
           ) : null}
           {isOwn ? (
             <p className="mt-0.5 truncate text-sm text-muted">{profile.gt_email}</p>
+          ) : null}
+          {streak > 0 ? (
+            <p className="mt-1.5">
+              <StreakBadge weeks={streak} />
+            </p>
           ) : null}
         </div>
       </div>
