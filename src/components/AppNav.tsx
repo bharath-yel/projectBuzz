@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { LogoMark, Wordmark } from "@/components/Logo";
 
 type NavItem = {
   href: string;
@@ -98,22 +99,9 @@ function AppNavView({ pathname }: { pathname: string | null }) {
         aria-label="ProjectBuzz home"
         className="mb-4 hidden h-12 items-center justify-center gap-2.5 rounded-xl text-xl font-bold tracking-tight text-gt-navy md:flex lg:justify-start lg:px-3"
       >
-        <svg width="28" height="28" viewBox="0 0 28 28" aria-hidden>
-          <path
-            d="M14 2 24.4 8v12L14 26 3.6 20V8Z"
-            className="fill-gt-gold"
-          />
-          <path
-            d="M9 16.5l3.2-3.2 2.6 2 3.6-4.6"
-            fill="none"
-            className="stroke-gt-navy"
-            strokeWidth="2.2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        </svg>
+        <LogoMark />
         <span className="hidden lg:inline">
-          Project<span className="text-gt-gold">Buzz</span>
+          <Wordmark />
         </span>
       </Link>
 
