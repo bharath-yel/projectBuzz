@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { DevPasswordLogin } from "@/components/auth/DevPasswordLogin";
 import { LoginFlow } from "@/components/auth/LoginFlow";
 import { LoginNotice } from "@/components/auth/LoginNotice";
 
@@ -13,6 +14,8 @@ export default function LoginPage() {
         <LoginNotice />
       </Suspense>
       <LoginFlow />
+      {/* Only under `npm run dev`; never part of a production build's page. */}
+      {process.env.NODE_ENV === "development" ? <DevPasswordLogin /> : null}
     </>
   );
 }
