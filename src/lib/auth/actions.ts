@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { GT_EMAIL_ERROR, isGatechEmail, normalizeEmail } from "@/lib/auth/email";
+import { getPostSignInPath } from "@/lib/auth/post-sign-in";
 import { safeNextPath } from "@/lib/auth/redirects";
 import { siteUrl } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
@@ -13,10 +14,8 @@ export type SendLoginEmailResult =
 /**
  * Step 1 of signing in: email a one-time login to a @gatech.edu address.
  *
- * Today the email carries a magic link that lands on /auth/callback. The same
- * `signInWithOtp` call also issues a 6-digit code, so a code screen only needs
- * a second action that calls `verifyOtp({ email, token, type: "email" })` and
- * then redirects to `getPostSignInPath(...)`. Nothing here has to change.
+ * The email carries a magic link (lands on /auth/callback) and, if the email
+ * template includes `{{ .Token }}`, a one-time code for verifyLoginCode below.
  */
 export async function sendLoginEmail(input: {
   email: string;
@@ -63,6 +62,41 @@ export async function sendLoginEmail(input: {
   }
 
   return { ok: true, email };
+}
+
+/**
+ * Step 2, code path: sign in with the one-time code from the email. Unlike
+ * the link, a code works on any device. On success this redirects and never
+ * returns; on failure it returns a message to show.
+ */
+export async function verifyLoginCode(input: {
+  email: string;
+  code: string;
+  next?: string | null;
+}): Promise<{ ok: false; message: string }> {
+  const email = normalizeEmail(String(input.email ?? ""));
+  const code = String(input.code ?? "").replace(/\D/g, "");
+  if (!isGatechEmail(email)) {
+    return { ok: false, message: GT_EMAIL_ERROR };
+  }
+  if (code.length < 6 || code.length > 10) {
+    return { ok: false, message: "Enter the full code from the email." };
+  }
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.verifyOtp({ email, token: code, type: "email" });
+  if (error || !data.user) {
+    console.error("verifyLoginCode failed:", error?.code, error?.message);
+    return {
+      ok: false,
+      message:
+        error?.status === 429
+          ? "Too many tries. Wait a minute, then try again."
+          : "That code didn't work. It may have expired or been mistyped. Check it, or request a new one.",
+    };
+  }
+
+  redirect(await getPostSignInPath(supabase, data.user.id, safeNextPath(input.next)));
 }
 
 export async function signOut(): Promise<void> {

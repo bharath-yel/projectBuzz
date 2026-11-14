@@ -3,14 +3,12 @@
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 import { Field } from "@/components/ui/Field";
 import { buttonPrimary, buttonText, inputClass } from "@/components/ui/styles";
-import { sendLoginEmail } from "@/lib/auth/actions";
+import { sendLoginEmail, verifyLoginCode } from "@/lib/auth/actions";
 import { GT_EMAIL_ERROR, isGatechEmail, normalizeEmail } from "@/lib/auth/email";
 
 /**
- * Sign-in is a sequence of steps. Today: enter email, then check your inbox
- * for a link. To add 6-digit codes later, give the "sent" step a code field
- * that calls a verify action; the email step and everything after sign-in
- * stay as they are.
+ * Sign-in is two steps: enter your email, then either type the code from the
+ * email or open the link in it. Both end at the same place.
  */
 type Step = { name: "email" } | { name: "sent"; email: string };
 
@@ -105,6 +103,23 @@ function CheckEmailStep({
   const [secondsLeft, setSecondsLeft] = useState(RESEND_WAIT_SECONDS);
   const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [pending, startTransition] = useTransition();
+  const [code, setCode] = useState("");
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [verifying, startVerify] = useTransition();
+
+  function verify(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (code.length < 6) {
+      setCodeError("Enter the full code from the email.");
+      return;
+    }
+    setCodeError(null);
+    startVerify(async () => {
+      // Success redirects away, so anything returned is a failure.
+      const result = await verifyLoginCode({ email, code, next: nextFromUrl() });
+      if (result && !result.ok) setCodeError(result.message);
+    });
+  }
 
   useEffect(() => {
     if (secondsLeft <= 0) return;
@@ -135,15 +150,41 @@ function CheckEmailStep({
       </div>
       <h1 className="text-2xl font-bold tracking-tight text-gt-navy">Check your email</h1>
       <p className="mt-1.5 text-sm leading-relaxed text-muted">
-        We sent a sign-in link to{" "}
-        <span className="font-semibold break-all text-foreground">{email}</span>. Open it
-        on this device, in this browser, to finish signing in.
-      </p>
-      <p className="mt-3 text-sm leading-relaxed text-muted">
-        Nothing yet? It can take a minute. Check your spam folder too.
+        We sent a sign-in email to{" "}
+        <span className="font-semibold break-all text-foreground">{email}</span>. Enter
+        the code from it below.
       </p>
 
-      {/* A 6-digit code field goes here when code login is added. */}
+      <form onSubmit={verify} noValidate className="mt-5">
+        <Field htmlFor="code" label="Sign-in code" error={codeError ?? undefined}>
+          <input
+            id="code"
+            name="code"
+            type="text"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            pattern="[0-9]*"
+            maxLength={10}
+            placeholder="123456"
+            value={code}
+            onChange={(event) => {
+              setCode(event.target.value.replace(/\D/g, ""));
+              if (codeError) setCodeError(null);
+            }}
+            aria-invalid={codeError ? true : undefined}
+            aria-describedby={codeError ? "code-error" : undefined}
+            className={`${inputClass} text-center text-xl font-semibold tracking-[0.3em]`}
+          />
+        </Field>
+        <button type="submit" disabled={verifying} className={`${buttonPrimary} mt-4 w-full`}>
+          {verifying ? "Checking…" : "Sign in"}
+        </button>
+      </form>
+
+      <p className="mt-4 text-sm leading-relaxed text-muted">
+        You can also open the link in the email, in this same browser. Nothing yet?
+        It can take a minute. Check your spam folder too.
+      </p>
 
       {notice ? (
         <p
@@ -164,8 +205,8 @@ function CheckEmailStep({
           {pending
             ? "Sending…"
             : secondsLeft > 0
-              ? `Resend link in ${secondsLeft}s`
-              : "Resend link"}
+              ? `Resend email in ${secondsLeft}s`
+              : "Resend email"}
         </button>
         <button type="button" onClick={onChangeEmail} className={buttonText}>
           Use a different email
