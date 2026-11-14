@@ -49,6 +49,18 @@ Built for the GT Campus Solutions Hackathon. Optimize for a working, polished mo
 - Never use the Supabase service_role key in client code or in any `NEXT_PUBLIC_` variable.
 - Storage buckets are created in SQL migrations, not by hand in the dashboard.
 
+## Environment and setup (already done)
+
+- The Supabase CLI is installed as a dev dependency. **Always run it as `npx supabase ...`**, never `supabase ...`.
+- The project is already linked to the remote Supabase project (`npx supabase link` is done). Don't re-init or re-link.
+- Apply migrations to the remote database with `npx supabase db push`. Generate types with `npx supabase gen types typescript --linked > src/lib/database.types.ts`.
+- Env vars live in `.env.local` (never commit it; keep it in `.gitignore`). Keep `.env.local.example` up to date with variable names only:
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - `NEXT_PUBLIC_SITE_URL` (`http://localhost:3000` locally; the GoDaddy domain in production)
+- Never use the Supabase service_role key in client code or in any `NEXT_PUBLIC_` variable.
+- Storage buckets are created in SQL migrations, not by hand in the dashboard.
+
 ## Architecture rules
 
 - **Generate previews in the browser at upload time.** Every attachment stores `file_url` (the original) and `preview_url` (an image).
@@ -84,7 +96,7 @@ streak_freezes  user_id, week_start date
 
 - Server Components by default. Use Client Components only where you need interactivity (uploaders, reactions, composer).
 - Database changes go in `supabase/migrations/` as SQL files. Seed data goes in `supabase/seed.sql`.
-- After every schema change: run `npx supabase db push --remote`, then regenerate types into `src/lib/database.types.ts`.
+- After every schema change: run `npx supabase db push`, then regenerate types into `src/lib/database.types.ts`.
 - Keep components small and in `src/components/`. Put feature logic in `src/lib/`.
 - No new dependencies without saying why.
 - UI: clean, modern and image-forward. GT colors as accents (Tech Gold `#B3A369`, navy `#003057`). Show empty states with friendly copy that encourages posting rough work in progress.
