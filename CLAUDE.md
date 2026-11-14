@@ -9,7 +9,8 @@ Built for the GT Campus Solutions Hackathon. Optimize for a working, polished mo
 - **Project is the core unit.** Profiles show a grid of projects. Posts always belong to a project.
 - **Every post needs at least one attachment.** Allowed types: photo, video, PDF, link, file. No text-only posts.
 - **Weekly streaks, not daily.** One post per week (Mon–Sun, America/New_York) keeps a streak alive. Personal and per-project streaks. Streaks pause automatically during weeks in `streak_pauses` (finals, breaks). Each user gets 2 streak freezes per semester.
-- **gatech.edu only.** Only `@gatech.edu` emails can sign up.
+- **gatech.edu only.** Only `@gatech.edu` emails can sign up. Enforce this in the UI and server-side.
+- **Login is magic link for now** (`signInWithOtp` plus an `/auth/callback` route). A 6-digit code entry screen comes later, once custom SMTP is set up. Structure the auth flow so the code screen can be added without a rewrite.
 - **Tags** have a type: `category`, `class`, or `club`. Projects can have many tags.
 - **Reactions:** `kudos` is the basic one-tap like and the most prominent reaction. Alongside it are three signal reactions: `use_this` ("I'd use this"), `can_help` ("I can help"), and `tried_this` ("I've tried this").
 - **Feedback requests:** a post can include an optional `feedback_question`. Show it prominently and frame comments as answers to it.
@@ -20,15 +21,28 @@ Built for the GT Campus Solutions Hackathon. Optimize for a working, polished mo
 
 - **3D CAD viewer** (STEP/STL rendering in the browser). For now, CAD files upload as generic `file` attachments.
 - **Similar-builders matching** (pgvector + an embeddings API).
+- **6-digit email code login** (after custom SMTP via Resend is configured in Supabase).
 - Don't add dependencies, tables or UI for these until asked. Just don't design anything that would block adding them later. For example, keep the attachment `type` easy to extend.
 
 ## Stack
 
 - Next.js (App Router) + TypeScript (strict) + Tailwind CSS
-- Supabase: Postgres, Auth (email OTP), Storage, Row Level Security
+- Supabase: Postgres, Auth (email magic link), Storage, Row Level Security
 - pdf.js (`pdfjs-dist`) for PDF first-page previews
 - Hosted on Vercel, served on a custom GoDaddy domain (DNS points to Vercel). Don't hardcode the domain; use an env var (`NEXT_PUBLIC_SITE_URL`) for absolute URLs.
 - Mobile web app: installable PWA (manifest + icons). Design mobile-first at 390px wide, with touch-friendly targets and a bottom nav. Desktop only needs to look acceptable.
+
+## Environment and setup (already done)
+
+- The Supabase CLI is installed as a dev dependency. **Always run it as `npx supabase ...`**, never `supabase ...`.
+- The project is already linked to the remote Supabase project (`npx supabase link` is done). Don't re-init or re-link.
+- Apply migrations to the remote database with `npx supabase db push`. Generate types with `npx supabase gen types typescript --linked > src/lib/database.types.ts`.
+- Env vars live in `.env.local` (never commit it; keep it in `.gitignore`). Keep `.env.local.example` up to date with variable names only:
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - `NEXT_PUBLIC_SITE_URL` (`http://localhost:3000` locally; the GoDaddy domain in production)
+- Never use the Supabase service_role key in client code or in any `NEXT_PUBLIC_` variable.
+- Storage buckets are created in SQL migrations, not by hand in the dashboard.
 
 ## Architecture rules
 
@@ -65,7 +79,7 @@ streak_freezes  user_id, week_start date
 
 - Server Components by default. Use Client Components only where you need interactivity (uploaders, reactions, composer).
 - Database changes go in `supabase/migrations/` as SQL files. Seed data goes in `supabase/seed.sql`.
-- Generate Supabase TypeScript types into `src/lib/database.types.ts` after schema changes.
+- After every schema change: run `npx supabase db push`, then regenerate types into `src/lib/database.types.ts`.
 - Keep components small and in `src/components/`. Put feature logic in `src/lib/`.
 - No new dependencies without saying why.
 - UI: clean, modern and image-forward. GT colors as accents (Tech Gold `#B3A369`, navy `#003057`). Show empty states with friendly copy that encourages posting rough work in progress.
