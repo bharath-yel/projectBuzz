@@ -41,7 +41,7 @@ Built for the GT Campus Solutions Hackathon. Optimize for a working, polished mo
 
 - The Supabase CLI is installed as a dev dependency. **Always run it as `npx supabase ...`**, never `supabase ...`.
 - The project is already linked to the remote Supabase project (`npx supabase link` is done). Don't re-init or re-link.
-- Apply migrations to the remote database with `npx supabase db push`. Generate types with `npx supabase gen types typescript --linked > src/lib/database.types.ts`.
+- Apply migrations to the remote database with `npx supabase db push --remote` (add `--include-seed` to also apply `supabase/seed.sql`). Generate types with `npx supabase gen types --remote --lang typescript > src/lib/database.types.ts`. The CLI (v3) targets a local database unless `--remote` is passed.
 - Env vars live in `.env.local` (never commit it; keep it in `.gitignore`). Keep `.env.local.example` up to date with variable names only:
   - `NEXT_PUBLIC_SUPABASE_URL`
   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -84,7 +84,7 @@ streak_freezes  user_id, week_start date
 
 - Server Components by default. Use Client Components only where you need interactivity (uploaders, reactions, composer).
 - Database changes go in `supabase/migrations/` as SQL files. Seed data goes in `supabase/seed.sql`.
-- After every schema change: run `npx supabase db push`, then regenerate types into `src/lib/database.types.ts`.
+- After every schema change: run `npx supabase db push --remote`, then regenerate types into `src/lib/database.types.ts`.
 - Keep components small and in `src/components/`. Put feature logic in `src/lib/`.
 - No new dependencies without saying why.
 - UI: clean, modern and image-forward. GT colors as accents (Tech Gold `#B3A369`, navy `#003057`). Show empty states with friendly copy that encourages posting rough work in progress.
