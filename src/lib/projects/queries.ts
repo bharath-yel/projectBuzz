@@ -1,5 +1,6 @@
 import type { Enums, Tables } from "@/lib/database.types";
 import type { FileMeta } from "@/lib/attachments/kinds";
+import type { ReactionSummary } from "@/lib/engagement/types";
 import type { LinkPreview } from "@/lib/link-preview/types";
 import { hydratePosts } from "@/lib/posts/hydrate";
 import { createClient } from "@/lib/supabase/server";
@@ -44,6 +45,11 @@ export type TimelinePost = {
   created_at: string;
   author: Person;
   attachments: TimelineAttachment[];
+  reactions: ReactionSummary;
+  /** All comments, replies included. */
+  commentCount: number;
+  /** Top-level comments only: the answers to a feedback question. */
+  answerCount: number;
 };
 
 /** All tags, for the picker. Small, fixed reference data. */
@@ -106,7 +112,7 @@ export async function getProject(projectId: string): Promise<ProjectDetail | nul
 }
 
 /** A project's posts, newest first, with attachment URLs ready to render. */
-export async function getProjectPosts(projectId: string): Promise<TimelinePost[]> {
+export async function getProjectPosts(projectId: string, userId: string): Promise<TimelinePost[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("posts")
@@ -120,7 +126,7 @@ export async function getProjectPosts(projectId: string): Promise<TimelinePost[]
     .limit(50);
 
   if (error) throw new Error(`Could not load posts: ${error.message}`);
-  const posts = await hydratePosts(supabase, data);
+  const posts = await hydratePosts(supabase, data, userId);
   return posts.map((post) => {
     const { row, ...rest } = post;
     void row;

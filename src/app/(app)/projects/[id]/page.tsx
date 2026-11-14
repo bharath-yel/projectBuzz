@@ -41,7 +41,7 @@ async function Project({ id }: { id: string }) {
   }
 
   const [posts, follows] = await Promise.all([
-    getProjectPosts(project.id),
+    getProjectPosts(project.id, user.id),
     getMyFollows(user.id),
   ]);
   const canPost =

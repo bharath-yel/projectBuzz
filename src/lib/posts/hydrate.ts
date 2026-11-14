@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Enums, Json } from "@/lib/database.types";
 import type { FileMeta } from "@/lib/attachments/kinds";
+import { type ReactionSummary } from "@/lib/engagement/types";
 import type { LinkPreview } from "@/lib/link-preview/types";
 import { ATTACHMENT_BUCKET } from "@/lib/posts/constants";
 import type { TimelinePost } from "@/lib/projects/queries";
@@ -38,6 +39,8 @@ function isExternalUrl(value: string): boolean {
 export async function hydratePosts<Row extends PostRow>(
   supabase: SupabaseClient<Database>,
   rows: Row[],
+  /** The viewer, so each post knows which reactions are theirs. */
+  userId: string,
 ): Promise<(TimelinePost & { row: Row })[]> {
   const paths = new Set<string>();
   for (const post of rows) {
@@ -59,8 +62,38 @@ export async function hydratePosts<Row extends PostRow>(
   const resolve = (value: string | null) =>
     !value ? null : isExternalUrl(value) ? value : (signed.get(value) ?? null);
 
+  // Reactions and comment counts for every post on the page, in two queries.
+  const postIds = rows.map((post) => post.id);
+  const reactions = new Map<string, ReactionSummary>();
+  const comments = new Map<string, { total: number; topLevel: number }>();
+  for (const id of postIds) {
+    reactions.set(id, { counts: { kudos: 0, use_this: 0, can_help: 0, tried_this: 0 }, mine: [] });
+    comments.set(id, { total: 0, topLevel: 0 });
+  }
+  if (postIds.length > 0) {
+    const [reactionRows, commentRows] = await Promise.all([
+      supabase.from("reactions").select("post_id, user_id, type").in("post_id", postIds),
+      supabase.from("comments").select("post_id, parent_id").in("post_id", postIds),
+    ]);
+    for (const row of reactionRows.data ?? []) {
+      const summary = reactions.get(row.post_id);
+      if (!summary) continue;
+      summary.counts[row.type] += 1;
+      if (row.user_id === userId) summary.mine.push(row.type);
+    }
+    for (const row of commentRows.data ?? []) {
+      const count = comments.get(row.post_id);
+      if (!count) continue;
+      count.total += 1;
+      if (!row.parent_id) count.topLevel += 1;
+    }
+  }
+
   return rows.map((post) => ({
     row: post,
+    reactions: reactions.get(post.id)!,
+    commentCount: comments.get(post.id)!.total,
+    answerCount: comments.get(post.id)!.topLevel,
     id: post.id,
     kind: post.kind,
     body: post.body,

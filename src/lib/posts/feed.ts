@@ -91,7 +91,7 @@ export async function getFeedPage({ userId, tab, tagId, cursor }: FeedQuery): Pr
   if (error) throw new Error(`Could not load the feed: ${error.message}`);
 
   const rows = data.slice(0, FEED_PAGE_SIZE);
-  const hydrated = await hydratePosts(supabase, rows);
+  const hydrated = await hydratePosts(supabase, rows, userId);
 
   return {
     posts: hydrated.map(({ row, ...post }) => ({

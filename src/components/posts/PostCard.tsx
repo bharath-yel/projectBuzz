@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { AttachmentCarousel } from "@/components/posts/AttachmentCarousel";
 import { AttachmentTile } from "@/components/posts/AttachmentTile";
+import { PostEngagement } from "@/components/posts/PostEngagement";
 import type { Enums } from "@/lib/database.types";
 import { STAGE_LABEL } from "@/lib/projects/constants";
 import type { TimelinePost } from "@/lib/projects/queries";
@@ -95,6 +96,14 @@ export function PostCard({ post, project }: PostCardProps) {
           </p>
         </div>
       ) : null}
+
+      <PostEngagement
+        postId={post.id}
+        reactions={post.reactions}
+        commentCount={post.commentCount}
+        answerCount={post.answerCount}
+        feedbackQuestion={post.feedback_question}
+      />
     </article>
   );
 }
