@@ -1,16 +1,15 @@
 import Image from "next/image";
+import Link from "next/link";
 import { EmptyState } from "@/components/EmptyState";
 import type { ProfileProject } from "@/lib/profile/queries";
-
-const STAGE_LABEL: Record<ProfileProject["stage"], string> = {
-  idea: "Idea",
-  prototype: "Prototype",
-  launched: "Launched",
-};
+import { STAGE_LABEL } from "@/lib/projects/constants";
 
 function ProjectCard({ project }: { project: ProfileProject }) {
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-background">
+    <Link
+      href={`/projects/${project.id}`}
+      className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-background transition-colors hover:border-gt-navy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gt-navy"
+    >
       <div className="relative aspect-[4/3] bg-surface">
         {project.cover_url ? (
           <Image
@@ -48,7 +47,7 @@ function ProjectCard({ project }: { project: ProfileProject }) {
           ) : null}
         </p>
       </div>
-    </article>
+    </Link>
   );
 }
 

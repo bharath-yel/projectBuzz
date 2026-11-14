@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ContributionGridPlaceholder } from "@/components/profile/ContributionGridPlaceholder";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProjectGrid } from "@/components/profile/ProjectGrid";
+import { buttonSecondary } from "@/components/ui/styles";
 import { isProfileComplete } from "@/lib/auth/post-sign-in";
 import type { Profile } from "@/lib/auth/session";
 import type { ProfileProject } from "@/lib/profile/queries";
@@ -12,14 +13,6 @@ type ProfileViewProps = {
   isOwn: boolean;
 };
 
-function SectionHeading({ children, count }: { children: string; count?: number }) {
-  return (
-    <h2 className="mb-3 flex items-baseline gap-2 text-lg font-semibold text-gt-navy">
-      {children}
-      {count ? <span className="text-sm font-normal text-muted">{count}</span> : null}
-    </h2>
-  );
-}
 
 /** A person's profile. Works for your own profile and, later, anyone else's. */
 export function ProfileView({ profile, projects, isOwn }: ProfileViewProps) {
@@ -62,12 +55,24 @@ export function ProfileView({ profile, projects, isOwn }: ProfileViewProps) {
       </section>
 
       <section>
-        <SectionHeading count={projects.length}>Projects</SectionHeading>
+        <div className="mb-3 flex items-center justify-between gap-3">
+          <h2 className="flex items-baseline gap-2 text-lg font-semibold text-gt-navy">
+            Projects
+            {projects.length > 0 ? (
+              <span className="text-sm font-normal text-muted">{projects.length}</span>
+            ) : null}
+          </h2>
+          {isOwn ? (
+            <Link href="/projects/new" className={buttonSecondary}>
+              New project
+            </Link>
+          ) : null}
+        </div>
         <ProjectGrid projects={projects} isOwn={isOwn} />
       </section>
 
       <section>
-        <SectionHeading>Activity</SectionHeading>
+        <h2 className="mb-3 text-lg font-semibold text-gt-navy">Activity</h2>
         <ContributionGridPlaceholder />
       </section>
     </div>
