@@ -72,7 +72,7 @@ export async function updateSession(request: NextRequest) {
   // API routes check the session themselves and answer with JSON.
   if (!signedIn && !isPublicPath(pathname) && !pathname.startsWith("/api/")) {
     const target = new URL("/login", request.url);
-    if (pathname !== "/") target.searchParams.set("next", pathname + search);
+    if (pathname !== "/" || search) target.searchParams.set("next", pathname + search);
     return redirectTo(target);
   }
 

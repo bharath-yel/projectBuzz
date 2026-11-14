@@ -1,10 +1,21 @@
 import Image from "next/image";
 import Link from "next/link";
 import { EmptyState } from "@/components/EmptyState";
-import type { ProfileProject } from "@/lib/profile/queries";
+import type { Enums } from "@/lib/database.types";
 import { STAGE_LABEL } from "@/lib/projects/constants";
 
-function ProjectCard({ project }: { project: ProfileProject }) {
+export type ProjectCardData = {
+  id: string;
+  title: string;
+  stage: Enums<"project_stage">;
+  visibility: Enums<"project_visibility">;
+  cover_url: string | null;
+  /** Set on profiles, where a card may be a project the person contributes to. */
+  role?: "owner" | "contributor";
+  roleLabel?: string | null;
+};
+
+function ProjectCard({ project }: { project: ProjectCardData }) {
   return (
     <Link
       href={`/projects/${project.id}`}
@@ -51,12 +62,25 @@ function ProjectCard({ project }: { project: ProfileProject }) {
   );
 }
 
+/** Project cards, two across on phones and three on desktop. */
+export function ProjectCards({ projects }: { projects: ProjectCardData[] }) {
+  return (
+    <ul className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+      {projects.map((project) => (
+        <li key={project.id}>
+          <ProjectCard project={project} />
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 type ProjectGridProps = {
-  projects: ProfileProject[];
+  projects: ProjectCardData[];
   isOwn: boolean;
 };
 
-/** Owned and contributed projects, two across on phones and three on desktop. */
+/** A profile's projects, with an empty state. */
 export function ProjectGrid({ projects, isOwn }: ProjectGridProps) {
   if (projects.length === 0) {
     return isOwn ? (
@@ -71,13 +95,5 @@ export function ProjectGrid({ projects, isOwn }: ProjectGridProps) {
     );
   }
 
-  return (
-    <ul className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-      {projects.map((project) => (
-        <li key={project.id}>
-          <ProjectCard project={project} />
-        </li>
-      ))}
-    </ul>
-  );
+  return <ProjectCards projects={projects} />;
 }

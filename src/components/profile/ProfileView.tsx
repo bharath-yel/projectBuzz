@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { ContributionGridPlaceholder } from "@/components/profile/ContributionGridPlaceholder";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProjectGrid } from "@/components/profile/ProjectGrid";
@@ -11,11 +12,13 @@ type ProfileViewProps = {
   profile: Profile;
   projects: ProfileProject[];
   isOwn: boolean;
+  /** Shown in the header on someone else's profile, e.g. a follow button. */
+  action?: ReactNode;
 };
 
 
 /** A person's profile. Works for your own profile and, later, anyone else's. */
-export function ProfileView({ profile, projects, isOwn }: ProfileViewProps) {
+export function ProfileView({ profile, projects, isOwn, action }: ProfileViewProps) {
   return (
     <div className="flex flex-col gap-7">
       {isOwn && !isProfileComplete(profile) ? (
@@ -28,7 +31,7 @@ export function ProfileView({ profile, projects, isOwn }: ProfileViewProps) {
         </Link>
       ) : null}
 
-      <ProfileHeader profile={profile} isOwn={isOwn} />
+      <ProfileHeader profile={profile} isOwn={isOwn} action={action} />
 
       <section aria-labelledby="skills-heading">
         <h2 id="skills-heading" className="mb-3 text-lg font-semibold text-gt-navy">

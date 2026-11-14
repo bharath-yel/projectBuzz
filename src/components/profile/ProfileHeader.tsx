@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Avatar } from "@/components/Avatar";
 import { buttonSecondary, buttonText } from "@/components/ui/styles";
 import { signOut } from "@/lib/auth/actions";
@@ -8,9 +9,11 @@ type ProfileHeaderProps = {
   profile: Profile;
   /** True when the viewer is looking at their own profile. */
   isOwn: boolean;
+  /** Shown on someone else's profile, e.g. a follow button. */
+  action?: ReactNode;
 };
 
-export function ProfileHeader({ profile, isOwn }: ProfileHeaderProps) {
+export function ProfileHeader({ profile, isOwn, action }: ProfileHeaderProps) {
   return (
     <header className="rounded-2xl border border-border bg-background p-5">
       <div className="flex items-center gap-4">
@@ -43,6 +46,8 @@ export function ProfileHeader({ profile, isOwn }: ProfileHeaderProps) {
           Add a short bio so people know what you&apos;re into.
         </p>
       ) : null}
+
+      {!isOwn && action ? <div className="mt-4">{action}</div> : null}
 
       {isOwn ? (
         <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1">

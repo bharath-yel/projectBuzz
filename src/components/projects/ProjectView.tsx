@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
 import { Avatar } from "@/components/Avatar";
 import { EmptyState } from "@/components/EmptyState";
 import { PostCard } from "@/components/posts/PostCard";
@@ -12,9 +13,11 @@ type ProjectViewProps = {
   posts: TimelinePost[];
   /** True for the owner and contributors: they can post updates. */
   canPost: boolean;
+  /** Shown beside the title for people who are not on the project, e.g. a follow button. */
+  action?: ReactNode;
 };
 
-export function ProjectView({ project, posts, canPost }: ProjectViewProps) {
+export function ProjectView({ project, posts, canPost, action }: ProjectViewProps) {
   const people = [
     { ...project.owner, label: "Owner" },
     ...project.contributors.map((person) => ({
@@ -48,13 +51,16 @@ export function ProjectView({ project, posts, canPost }: ProjectViewProps) {
         </div>
 
         <div className="p-5">
-          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
-            <span className="rounded-full bg-gt-gold/30 px-2.5 py-1 text-gt-navy">
-              {STAGE_LABEL[project.stage]}
-            </span>
-            {project.visibility === "private" ? (
-              <span className="rounded-full bg-gt-navy px-2.5 py-1 text-white">Private</span>
-            ) : null}
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+              <span className="rounded-full bg-gt-gold/30 px-2.5 py-1 text-gt-navy">
+                {STAGE_LABEL[project.stage]}
+              </span>
+              {project.visibility === "private" ? (
+                <span className="rounded-full bg-gt-navy px-2.5 py-1 text-white">Private</span>
+              ) : null}
+            </div>
+            {action}
           </div>
           <h1 className="mt-2.5 text-2xl font-bold tracking-tight break-words text-gt-navy">
             {project.title}
@@ -68,11 +74,13 @@ export function ProjectView({ project, posts, canPost }: ProjectViewProps) {
           {project.tags.length > 0 ? (
             <ul className="mt-4 flex flex-wrap gap-2" aria-label="Tags">
               {project.tags.map((tag) => (
-                <li
-                  key={tag.id}
-                  className="rounded-full border border-border px-3 py-1 text-sm text-muted"
-                >
-                  {tag.name}
+                <li key={tag.id}>
+                  <Link
+                    href={`/tags/${tag.slug}`}
+                    className="inline-flex min-h-11 items-center rounded-full border border-border px-4 text-sm text-muted transition-colors hover:border-gt-navy hover:text-gt-navy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gt-navy"
+                  >
+                    {tag.name}
+                  </Link>
                 </li>
               ))}
             </ul>
@@ -80,12 +88,17 @@ export function ProjectView({ project, posts, canPost }: ProjectViewProps) {
 
           <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-3 border-t border-border pt-4">
             {people.map((person) => (
-              <li key={person.id} className="flex min-w-0 items-center gap-2.5">
-                <Avatar src={person.avatar_url} name={person.name} size={36} />
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-gt-navy">{person.name}</p>
-                  <p className="truncate text-xs text-muted">{person.label}</p>
-                </div>
+              <li key={person.id} className="min-w-0">
+                <Link
+                  href={`/u/${person.id}`}
+                  className="flex min-h-11 min-w-0 items-center gap-2.5 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gt-navy"
+                >
+                  <Avatar src={person.avatar_url} name={person.name} size={36} />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-semibold text-gt-navy">{person.name}</span>
+                    <span className="block truncate text-xs text-muted">{person.label}</span>
+                  </span>
+                </Link>
               </li>
             ))}
           </ul>

@@ -1,11 +1,11 @@
 import type { Enums, Tables } from "@/lib/database.types";
 import type { LinkPreview } from "@/lib/link-preview/types";
-import { ATTACHMENT_BUCKET } from "@/lib/posts/constants";
+import { hydratePosts } from "@/lib/posts/hydrate";
 import { createClient } from "@/lib/supabase/server";
 
 export type Tag = Pick<Tables<"tags">, "id" | "type" | "name" | "slug">;
 
-type Person = { id: string; name: string; avatar_url: string | null };
+export type Person = { id: string; name: string; avatar_url: string | null };
 
 export type ProjectDetail = {
   id: string;
@@ -100,10 +100,6 @@ export async function getProject(projectId: string): Promise<ProjectDetail | nul
   };
 }
 
-function isExternalUrl(value: string): boolean {
-  return /^https?:\/\//i.test(value);
-}
-
 /** A project's posts, newest first, with attachment URLs ready to render. */
 export async function getProjectPosts(projectId: string): Promise<TimelinePost[]> {
   const supabase = await createClient();
@@ -119,46 +115,10 @@ export async function getProjectPosts(projectId: string): Promise<TimelinePost[]
     .limit(50);
 
   if (error) throw new Error(`Could not load posts: ${error.message}`);
-
-  // Files in the private attachments bucket need a signed URL to be viewed.
-  const paths = new Set<string>();
-  for (const post of data) {
-    for (const attachment of post.attachments) {
-      for (const value of [attachment.file_url, attachment.preview_url]) {
-        if (value && !isExternalUrl(value)) paths.add(value);
-      }
-    }
-  }
-  const signed = new Map<string, string>();
-  if (paths.size > 0) {
-    const { data: urls } = await supabase.storage
-      .from(ATTACHMENT_BUCKET)
-      .createSignedUrls([...paths], 60 * 60);
-    for (const entry of urls ?? []) {
-      if (entry.path && entry.signedUrl) signed.set(entry.path, entry.signedUrl);
-    }
-  }
-  const resolve = (value: string | null) =>
-    !value ? null : isExternalUrl(value) ? value : (signed.get(value) ?? null);
-
-  return data.map((post) => ({
-    id: post.id,
-    kind: post.kind,
-    body: post.body,
-    feedback_question: post.feedback_question,
-    created_at: post.created_at,
-    author: post.author,
-    attachments: [...post.attachments]
-      .sort((a, b) => a.sort_order - b.sort_order)
-      .map((attachment) => ({
-        id: attachment.id,
-        type: attachment.type,
-        fileUrl: resolve(attachment.file_url),
-        previewUrl: resolve(attachment.preview_url),
-        link:
-          attachment.type === "link"
-            ? (attachment.meta as unknown as LinkPreview)
-            : null,
-      })),
-  }));
+  const posts = await hydratePosts(supabase, data, { originals: true });
+  return posts.map((post) => {
+    const { row, ...rest } = post;
+    void row;
+    return rest;
+  });
 }
