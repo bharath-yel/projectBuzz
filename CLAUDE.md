@@ -30,7 +30,24 @@ Built for the GT Campus Solutions Hackathon. Optimize for a working, polished mo
 - Supabase: Postgres, Auth (email magic link), Storage, Row Level Security
 - pdf.js (`pdfjs-dist`) for PDF first-page previews
 - Hosted on Vercel, served on a custom GoDaddy domain (DNS points to Vercel). Don't hardcode the domain; use an env var (`NEXT_PUBLIC_SITE_URL`) for absolute URLs.
-- Mobile web app: installable PWA (manifest + icons). Design mobile-first at 390px wide, with touch-friendly targets and a bottom nav. Desktop only needs to look acceptable.
+- Responsive web app, first-class on **both phone and laptop**, plus an installable PWA (manifest + icons). Write styles mobile-first, then adapt with Tailwind breakpoints:
+  - **Mobile (< 768px):** single column, bottom nav, touch-friendly targets (≥ 44px).
+  - **Tablet (768–1023px):** left icon-only sidebar nav, centered content column.
+  - **Desktop (≥ 1024px):** left sidebar nav with labels, a centered main column (~600px max), and a right rail (your streak card, trending tags, suggested projects). Profile and Explore project grids widen to 2–3 columns.
+  - One codebase and one set of components that adapt by screen width. No separate mobile and desktop pages.
+  - Use hover states on desktop, but never make an action hover-only, since phones can't hover.
+
+## Environment and setup (already done)
+
+- The Supabase CLI is installed as a dev dependency. **Always run it as `npx supabase ...`**, never `supabase ...`.
+- The project is already linked to the remote Supabase project (`npx supabase link` is done). Don't re-init or re-link.
+- Apply migrations to the remote database with `npx supabase db push --remote` (add `--include-seed` to also apply `supabase/seed.sql`). Generate types with `npx supabase gen types --remote --lang typescript > src/lib/database.types.ts`. The CLI (v3) targets a local database unless `--remote` is passed.
+- Env vars live in `.env.local` (never commit it; keep it in `.gitignore`). Keep `.env.local.example` up to date with variable names only:
+  - `NEXT_PUBLIC_SUPABASE_URL`
+  - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+  - `NEXT_PUBLIC_SITE_URL` (`http://localhost:3000` locally; the GoDaddy domain in production)
+- Never use the Supabase service_role key in client code or in any `NEXT_PUBLIC_` variable.
+- Storage buckets are created in SQL migrations, not by hand in the dashboard.
 
 ## Environment and setup (already done)
 
@@ -88,6 +105,6 @@ streak_freezes  user_id, week_start date
 
 - For each task: propose a short plan first, then implement.
 - After changes, run `npm run typecheck` and `npm run lint` and fix any errors before reporting done.
-- Test every screen at a 390px-wide mobile viewport.
+- Check every screen at 390px (phone) and 1440px (laptop) widths.
 - End each task with a short list of what to test by hand.
 - Make small, focused commits with clear messages.
