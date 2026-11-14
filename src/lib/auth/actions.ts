@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { GT_EMAIL_ERROR, isGatechEmail, normalizeEmail } from "@/lib/auth/email";
 import { getPostSignInPath } from "@/lib/auth/post-sign-in";
 import { safeNextPath } from "@/lib/auth/redirects";
-import { siteUrl } from "@/lib/site";
+import { siteUrl, siteUrlConfigured } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 
 export type SendLoginEmailResult =
@@ -24,6 +24,15 @@ export async function sendLoginEmail(input: {
   const email = normalizeEmail(String(input.email ?? ""));
   if (!isGatechEmail(email)) {
     return { ok: false, message: GT_EMAIL_ERROR };
+  }
+
+  // Never email a sign-in link that points at localhost from a deployed site.
+  if (process.env.NODE_ENV === "production" && !siteUrlConfigured) {
+    console.error("sendLoginEmail: NEXT_PUBLIC_SITE_URL is not set, so sign-in links cannot be built.");
+    return {
+      ok: false,
+      message: "Sign-in isn't set up on this site yet. Please try again later.",
+    };
   }
 
   const next = safeNextPath(input.next);

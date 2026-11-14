@@ -6,6 +6,9 @@ export const siteUrl = (
   process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000"
 ).replace(/\/+$/, "");
 
+/** False when NEXT_PUBLIC_SITE_URL is unset and the localhost fallback is in use. */
+export const siteUrlConfigured = Boolean(process.env.NEXT_PUBLIC_SITE_URL);
+
 export const siteName = "ProjectBuzz";
 
 export const siteDescription =
