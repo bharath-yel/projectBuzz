@@ -12,9 +12,18 @@ import {
   type FormEvent,
   type KeyboardEvent,
 } from "react";
+import { FileCard } from "@/components/posts/FileCard";
 import { LinkCard } from "@/components/posts/LinkCard";
 import { Field } from "@/components/ui/Field";
 import { buttonPrimary, buttonSecondary, inputClass } from "@/components/ui/styles";
+import {
+  classifyFile,
+  formatBytes,
+  MAX_FILE_BYTES,
+  safeExtension,
+  type FileMeta,
+} from "@/lib/attachments/kinds";
+import { pdfFirstPage, videoFrame } from "@/lib/attachments/previews";
 import { resizeImage } from "@/lib/images/resize";
 import type { LinkPreview } from "@/lib/link-preview/types";
 import { createPost, type NewAttachment } from "@/lib/posts/actions";
@@ -32,7 +41,17 @@ type ProjectOption = { id: string; title: string };
 
 type Draft =
   | { key: string; type: "photo"; full: Blob; preview: Blob; url: string }
-  | { key: string; type: "link"; preview: LinkPreview };
+  | { key: string; type: "link"; preview: LinkPreview }
+  | {
+      key: string;
+      type: "pdf" | "video" | "file";
+      file: File;
+      /** Preview image made in the browser; null if it could not be made. */
+      preview: Blob | null;
+      url: string | null;
+      meta: FileMeta;
+      allowDownload: boolean;
+    };
 
 type PostComposerProps = {
   userId: string;
@@ -86,7 +105,7 @@ export function PostComposer({ userId, projects, initialProjectId }: PostCompose
   useEffect(() => {
     return () => {
       for (const draft of draftsRef.current) {
-        if (draft.type === "photo") URL.revokeObjectURL(draft.url);
+        if (draft.type !== "link" && draft.url) URL.revokeObjectURL(draft.url);
       }
     };
   }, []);
@@ -130,39 +149,83 @@ export function PostComposer({ userId, projects, initialProjectId }: PostCompose
     }
   }
 
-  async function handlePhotos(event: ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(event.target.files ?? []).slice(0, room);
+  async function handleFiles(event: ChangeEvent<HTMLInputElement>) {
+    const picked = Array.from(event.target.files ?? []);
     event.target.value = "";
-    if (files.length === 0) return;
+    if (picked.length === 0) return;
     setPhotoBusy(true);
     setError(null);
+
+    const problems: string[] = [];
+    if (picked.length > room) {
+      problems.push(`Only ${room} more ${room === 1 ? "attachment fits" : "attachments fit"}; the rest were skipped.`);
+    }
     const added: Draft[] = [];
-    let unreadable = 0;
-    for (const file of files) {
-      try {
-        // Compress here, in the browser, so the original never leaves the device.
-        const full = await resizeImage(file, { maxEdge: PHOTO_MAX_EDGE });
-        const preview = await resizeImage(full, { maxEdge: PHOTO_PREVIEW_EDGE, quality: 0.8 });
-        added.push({
-          key: crypto.randomUUID(),
-          type: "photo",
-          full,
-          preview,
-          url: URL.createObjectURL(preview),
-        });
-      } catch {
-        unreadable += 1;
+    for (const file of picked.slice(0, room)) {
+      const kind = classifyFile(file);
+      const key = crypto.randomUUID();
+
+      if (kind === "photo") {
+        try {
+          // Compress here, in the browser, so the original never leaves the device.
+          const full = await resizeImage(file, { maxEdge: PHOTO_MAX_EDGE });
+          const preview = await resizeImage(full, { maxEdge: PHOTO_PREVIEW_EDGE, quality: 0.8 });
+          added.push({ key, type: "photo", full, preview, url: URL.createObjectURL(preview) });
+        } catch {
+          problems.push(`We couldn't read ${file.name}. Try a JPG or PNG.`);
+        }
+        continue;
       }
+
+      if (file.size > MAX_FILE_BYTES) {
+        problems.push(`${file.name} is ${formatBytes(file.size)}. Files can be up to 25 MB.`);
+        continue;
+      }
+      if (file.size === 0) {
+        problems.push(`${file.name} is empty.`);
+        continue;
+      }
+
+      const meta: FileMeta = {
+        name: file.name,
+        size: file.size,
+        mime: file.type || "application/octet-stream",
+      };
+      let preview: Blob | null = null;
+      if (kind === "pdf") {
+        const result = await pdfFirstPage(file);
+        preview = result.preview;
+        if (result.pages) meta.pages = result.pages;
+      } else if (kind === "video") {
+        const result = await videoFrame(file);
+        preview = result.preview;
+        if (result.duration) meta.duration = result.duration;
+      }
+      added.push({
+        key,
+        type: kind,
+        file,
+        preview,
+        url: preview ? URL.createObjectURL(preview) : null,
+        meta,
+        // PDFs and videos can be viewed in the app; other files are only useful downloaded.
+        allowDownload: kind === "file",
+      });
     }
+
     setDrafts((current) => [...current, ...added]);
-    if (unreadable > 0) {
-      setError(
-        unreadable === 1
-          ? "We couldn't read one of those images. Try a JPG or PNG."
-          : `We couldn't read ${unreadable} of those images. Try JPG or PNG files.`,
-      );
-    }
+    if (problems.length > 0) setError(problems.join(" "));
     setPhotoBusy(false);
+  }
+
+  function setAllowDownload(key: string, allowDownload: boolean) {
+    setDrafts((current) =>
+      current.map((draft) =>
+        draft.key === key && draft.type !== "photo" && draft.type !== "link"
+          ? { ...draft, allowDownload }
+          : draft,
+      ),
+    );
   }
 
   async function addLink() {
@@ -195,7 +258,7 @@ export function PostComposer({ userId, projects, initialProjectId }: PostCompose
   function removeDraft(key: string) {
     setDrafts((current) => {
       const draft = current.find((item) => item.key === key);
-      if (draft?.type === "photo") URL.revokeObjectURL(draft.url);
+      if (draft && draft.type !== "link" && draft.url) URL.revokeObjectURL(draft.url);
       return current.filter((item) => item.key !== key);
     });
   }
@@ -207,7 +270,7 @@ export function PostComposer({ userId, projects, initialProjectId }: PostCompose
       return;
     }
     if (drafts.length === 0) {
-      setError("Add at least one photo or link. Every post shows something.");
+      setError("Add at least one photo, file or link. Every post shows something.");
       return;
     }
     setError(null);
@@ -217,33 +280,59 @@ export function PostComposer({ userId, projects, initialProjectId }: PostCompose
       const folder = attachmentFolder(projectId, userId);
       const attachments: NewAttachment[] = [];
 
-      const photoCount = drafts.filter((draft) => draft.type === "photo").length;
+      const bucket = supabase.storage.from(ATTACHMENT_BUCKET);
+      const uploadCount = drafts.filter((draft) => draft.type !== "link").length;
       let uploaded = 0;
+      // "Duplicate" means an earlier attempt already uploaded this file.
+      const failure = (results: { error: { message: string } | null }[]) =>
+        results.find((result) => result.error && !/exists|duplicate/i.test(result.error.message))
+          ?.error;
+
       for (const draft of drafts) {
         if (draft.type === "link") {
           attachments.push({ type: "link", preview: draft.preview });
           continue;
         }
         uploaded += 1;
-        setStatus(`Uploading photo ${uploaded} of ${photoCount}…`);
-        const filePath = `${folder}${draft.key}.jpg`;
-        const previewPath = `${folder}${draft.key}-preview.jpg`;
-        const bucket = supabase.storage.from(ATTACHMENT_BUCKET);
-        const [file, preview] = await Promise.all([
-          bucket.upload(filePath, draft.full, { contentType: "image/jpeg" }),
-          bucket.upload(previewPath, draft.preview, { contentType: "image/jpeg" }),
-        ]);
-        // "Duplicate" means an earlier attempt already uploaded this photo.
-        const failed = [file.error, preview.error].find(
-          (uploadError) => uploadError && !/exists|duplicate/i.test(uploadError.message),
-        );
+        setStatus(`Uploading ${uploaded} of ${uploadCount}…`);
+
+        let failed;
+        if (draft.type === "photo") {
+          const filePath = `${folder}${draft.key}.jpg`;
+          const previewPath = `${folder}${draft.key}-preview.jpg`;
+          failed = failure(
+            await Promise.all([
+              bucket.upload(filePath, draft.full, { contentType: "image/jpeg" }),
+              bucket.upload(previewPath, draft.preview, { contentType: "image/jpeg" }),
+            ]),
+          );
+          attachments.push({ type: "photo", filePath, previewPath });
+        } else {
+          const filePath = `${folder}${draft.key}.${safeExtension(draft.file.name)}`;
+          const previewPath = draft.preview ? `${folder}${draft.key}-preview.png` : null;
+          failed = failure(
+            await Promise.all([
+              bucket.upload(filePath, draft.file, { contentType: draft.meta.mime }),
+              ...(draft.preview && previewPath
+                ? [bucket.upload(previewPath, draft.preview, { contentType: "image/png" })]
+                : []),
+            ]),
+          );
+          attachments.push({
+            type: draft.type,
+            filePath,
+            previewPath,
+            meta: draft.meta,
+            allowDownload: draft.allowDownload,
+          });
+        }
+
         if (failed) {
-          console.error("Photo upload failed:", failed.message);
-          setError("A photo didn't upload. Check your connection and try again.");
+          console.error("Upload failed:", failed.message);
+          setError("A file didn't upload. Check your connection and try again.");
           setStatus(null);
           return;
         }
-        attachments.push({ type: "photo", filePath, previewPath });
       }
 
       setStatus("Posting…");
@@ -391,13 +480,50 @@ export function PostComposer({ userId, projects, initialProjectId }: PostCompose
                   <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-surface">
                     <Image src={draft.url} alt="Photo to post" fill unoptimized className="object-cover" />
                   </div>
-                ) : (
+                ) : draft.type === "link" ? (
                   <LinkCard preview={draft.preview} />
+                ) : (
+                  <div className="rounded-xl border border-border bg-background">
+                    {draft.url ? (
+                      <div className="relative aspect-[4/3] overflow-hidden rounded-t-xl bg-surface">
+                        <Image
+                          src={draft.url}
+                          alt={`Preview of ${draft.meta.name}`}
+                          fill
+                          unoptimized
+                          className={draft.type === "pdf" ? "object-contain" : "object-cover"}
+                        />
+                      </div>
+                    ) : null}
+                    <div className="pr-12 [&>div]:border-0">
+                      <FileCard
+                        kind={draft.type}
+                        name={draft.meta.name}
+                        size={draft.meta.size}
+                        detail={draft.meta.pages ? `${draft.meta.pages} ${draft.meta.pages === 1 ? "page" : "pages"}` : null}
+                      />
+                    </div>
+                    <label className="flex min-h-11 cursor-pointer items-center gap-2.5 border-t border-border px-3.5 py-2 text-sm text-foreground">
+                      <input
+                        type="checkbox"
+                        checked={draft.allowDownload}
+                        onChange={(event) => setAllowDownload(draft.key, event.target.checked)}
+                        className="h-5 w-5 accent-gt-navy"
+                      />
+                      Let others download the original
+                    </label>
+                  </div>
                 )}
                 <button
                   type="button"
                   onClick={() => removeDraft(draft.key)}
-                  aria-label={draft.type === "photo" ? "Remove photo" : "Remove link"}
+                  aria-label={
+                    draft.type === "photo"
+                      ? "Remove photo"
+                      : draft.type === "link"
+                        ? "Remove link"
+                        : `Remove ${draft.meta.name}`
+                  }
                   className="absolute top-1.5 right-1.5 flex h-11 w-11 items-center justify-center rounded-full bg-gt-navy/85 text-white transition-colors hover:bg-gt-navy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gt-navy"
                 >
                   <svg width="16" height="16" viewBox="0 0 14 14" aria-hidden>
@@ -409,7 +535,7 @@ export function PostComposer({ userId, projects, initialProjectId }: PostCompose
           </ul>
         ) : (
           <p className="mb-3 rounded-xl border border-dashed border-border bg-background px-4 py-5 text-center text-sm leading-relaxed text-muted">
-            Every post needs a photo or a link. A blurry bench photo is plenty.
+            Every post needs a photo, file or link. A blurry bench photo is plenty.
           </p>
         )}
 
@@ -420,17 +546,19 @@ export function PostComposer({ userId, projects, initialProjectId }: PostCompose
               aria-disabled={photoBusy}
               className={`${buttonSecondary} w-full cursor-pointer has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-gt-navy aria-disabled:pointer-events-none aria-disabled:opacity-60`}
             >
-              {photoBusy ? "Preparing photos…" : "Add photos"}
+              {photoBusy ? "Preparing…" : "Add photos or files"}
               <input
                 id={photoInputId}
                 type="file"
-                accept="image/*"
                 multiple
                 disabled={photoBusy}
-                onChange={handlePhotos}
+                onChange={handleFiles}
                 className="sr-only"
               />
             </label>
+            <p className="-mt-1 text-center text-xs text-muted">
+              Photos, videos, PDFs, CAD and other files. Up to 25 MB each.
+            </p>
             <div>
               <div className="flex gap-2">
                 <input
@@ -494,7 +622,7 @@ export function PostComposer({ userId, projects, initialProjectId }: PostCompose
         </button>
         {cannotPost && !pending ? (
           <p className="mt-2 text-center text-xs text-muted">
-            {!projectId ? "Pick a project" : "Add a photo or link"} to post.
+            {!projectId ? "Pick a project" : "Add a photo, file or link"} to post.
           </p>
         ) : null}
       </div>

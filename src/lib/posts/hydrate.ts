@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Enums, Json } from "@/lib/database.types";
+import type { FileMeta } from "@/lib/attachments/kinds";
 import type { LinkPreview } from "@/lib/link-preview/types";
 import { ATTACHMENT_BUCKET } from "@/lib/posts/constants";
 import type { TimelinePost } from "@/lib/projects/queries";
@@ -18,6 +19,7 @@ export type PostRow = {
     file_url: string;
     preview_url: string | null;
     meta: Json;
+    allow_download: boolean;
     sort_order: number;
   }[];
 };
@@ -27,26 +29,21 @@ function isExternalUrl(value: string): boolean {
 }
 
 /**
- * Turns stored attachment locations into URLs a browser can load. Files in
- * the private attachments bucket get a one-hour signed URL.
+ * Turns stored preview locations into URLs a browser can load (a one-hour
+ * signed URL for files in the private attachments bucket).
  *
- * `originals: false` is for the feed: it resolves previews only, so the feed
- * never has a URL for a full-size file, let alone loads one.
+ * Only previews are resolved. Lists of posts never get a URL for an original
+ * file; the viewer asks for one when someone taps an attachment.
  */
 export async function hydratePosts<Row extends PostRow>(
   supabase: SupabaseClient<Database>,
   rows: Row[],
-  options: { originals: boolean },
 ): Promise<(TimelinePost & { row: Row })[]> {
   const paths = new Set<string>();
   for (const post of rows) {
     for (const attachment of post.attachments) {
-      const values = options.originals
-        ? [attachment.file_url, attachment.preview_url]
-        : [attachment.preview_url];
-      for (const value of values) {
-        if (value && !isExternalUrl(value)) paths.add(value);
-      }
+      const value = attachment.preview_url;
+      if (value && !isExternalUrl(value)) paths.add(value);
     }
   }
 
@@ -77,10 +74,15 @@ export async function hydratePosts<Row extends PostRow>(
         return {
           id: attachment.id,
           type: attachment.type,
-          // A link's "file" is just its address, which is always safe to expose.
-          fileUrl: isLink || options.originals ? resolve(attachment.file_url) : null,
+          // A link's "file" is just its address. Stored files have no URL here.
+          fileUrl: isLink ? resolve(attachment.file_url) : null,
           previewUrl: resolve(attachment.preview_url),
           link: isLink ? (attachment.meta as unknown as LinkPreview) : null,
+          file:
+            attachment.type === "pdf" || attachment.type === "video" || attachment.type === "file"
+              ? (attachment.meta as unknown as Partial<FileMeta>)
+              : null,
+          allowDownload: attachment.allow_download,
         };
       }),
   }));

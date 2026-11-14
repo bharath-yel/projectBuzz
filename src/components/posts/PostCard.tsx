@@ -1,11 +1,10 @@
-import Image from "next/image";
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
 import { AttachmentCarousel } from "@/components/posts/AttachmentCarousel";
-import { LinkCard } from "@/components/posts/LinkCard";
+import { AttachmentTile } from "@/components/posts/AttachmentTile";
 import type { Enums } from "@/lib/database.types";
 import { STAGE_LABEL } from "@/lib/projects/constants";
-import type { TimelineAttachment, TimelinePost } from "@/lib/projects/queries";
+import type { TimelinePost } from "@/lib/projects/queries";
 
 const dateFormat = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -18,55 +17,6 @@ const KIND_LABEL: Record<TimelinePost["kind"], string> = {
   ship: "Ship",
   milestone: "Milestone",
 };
-
-function Attachment({ attachment }: { attachment: TimelineAttachment }) {
-  if (attachment.type === "link" && attachment.link && attachment.fileUrl) {
-    return (
-      <a
-        href={attachment.fileUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="block rounded-xl transition-opacity hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gt-navy"
-      >
-        <LinkCard preview={attachment.link} />
-      </a>
-    );
-  }
-
-  if (attachment.type === "photo" && attachment.previewUrl) {
-    const photo = (
-      <div className="relative aspect-[4/3] overflow-hidden rounded-xl border border-border bg-surface">
-        <Image
-          src={attachment.previewUrl}
-          alt="Photo from this update"
-          fill
-          unoptimized
-          sizes="(min-width: 768px) 560px, 100vw"
-          className="object-cover"
-        />
-      </div>
-    );
-    return attachment.fileUrl ? (
-      <a
-        href={attachment.fileUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Open full-size photo"
-        className="block rounded-xl focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gt-navy"
-      >
-        {photo}
-      </a>
-    ) : (
-      photo
-    );
-  }
-
-  return (
-    <div className="rounded-xl border border-border bg-surface px-4 py-3 text-sm text-muted">
-      This attachment can&apos;t be shown yet.
-    </div>
-  );
-}
 
 type PostCardProps = {
   post: TimelinePost;
@@ -129,7 +79,7 @@ export function PostCard({ post, project }: PostCardProps) {
         <div className="mt-3">
           <AttachmentCarousel
             slides={post.attachments.map((attachment) => (
-              <Attachment key={attachment.id} attachment={attachment} />
+              <AttachmentTile key={attachment.id} attachment={attachment} />
             ))}
           />
         </div>

@@ -1,4 +1,5 @@
 import type { Enums, Tables } from "@/lib/database.types";
+import type { FileMeta } from "@/lib/attachments/kinds";
 import type { LinkPreview } from "@/lib/link-preview/types";
 import { hydratePosts } from "@/lib/posts/hydrate";
 import { createClient } from "@/lib/supabase/server";
@@ -23,12 +24,16 @@ export type ProjectDetail = {
 export type TimelineAttachment = {
   id: string;
   type: Enums<"attachment_type">;
-  /** Ready-to-use URL for the original (signed if it lives in storage). */
+  /** The address of a link attachment. Null for stored files: the viewer fetches those on tap. */
   fileUrl: string | null;
   /** Ready-to-use URL for the preview image, if there is one. */
   previewUrl: string | null;
   /** Link metadata saved when the post was written (link attachments only). */
   link: LinkPreview | null;
+  /** Name, size and so on (PDF, video and file attachments only). */
+  file: Partial<FileMeta> | null;
+  /** Whether people other than the author may download the original. */
+  allowDownload: boolean;
 };
 
 export type TimelinePost = {
@@ -108,14 +113,14 @@ export async function getProjectPosts(projectId: string): Promise<TimelinePost[]
     .select(
       `id, kind, body, feedback_question, created_at,
        author:profiles!posts_author_id_fkey(id, name, avatar_url),
-       attachments(id, type, file_url, preview_url, meta, sort_order)`,
+       attachments(id, type, file_url, preview_url, meta, allow_download, sort_order)`,
     )
     .eq("project_id", projectId)
     .order("created_at", { ascending: false })
     .limit(50);
 
   if (error) throw new Error(`Could not load posts: ${error.message}`);
-  const posts = await hydratePosts(supabase, data, { originals: true });
+  const posts = await hydratePosts(supabase, data);
   return posts.map((post) => {
     const { row, ...rest } = post;
     void row;

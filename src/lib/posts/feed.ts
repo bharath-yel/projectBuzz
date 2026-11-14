@@ -58,7 +58,7 @@ export async function getFeedPage({ userId, tab, tagId, cursor }: FeedQuery): Pr
       `id, kind, body, feedback_question, created_at,
        author:profiles!posts_author_id_fkey(id, name, avatar_url),
        project:projects!inner(id, title, stage, visibility),
-       attachments(id, type, file_url, preview_url, meta, sort_order)`,
+       attachments(id, type, file_url, preview_url, meta, allow_download, sort_order)`,
     )
     .eq("project.visibility", "public")
     .order("created_at", { ascending: false })
@@ -91,8 +91,7 @@ export async function getFeedPage({ userId, tab, tagId, cursor }: FeedQuery): Pr
   if (error) throw new Error(`Could not load the feed: ${error.message}`);
 
   const rows = data.slice(0, FEED_PAGE_SIZE);
-  // The feed shows previews only: full-size files are never resolved here.
-  const hydrated = await hydratePosts(supabase, rows, { originals: false });
+  const hydrated = await hydratePosts(supabase, rows);
 
   return {
     posts: hydrated.map(({ row, ...post }) => ({

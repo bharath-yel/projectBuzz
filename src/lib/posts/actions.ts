@@ -1,5 +1,6 @@
 "use server";
 
+import { MAX_FILE_BYTES, type FileMeta } from "@/lib/attachments/kinds";
 import { getCurrentUser } from "@/lib/auth/session";
 import type { Json } from "@/lib/database.types";
 import type { LinkPreview } from "@/lib/link-preview/types";
@@ -9,7 +10,15 @@ import { createClient } from "@/lib/supabase/server";
 
 export type NewAttachment =
   | { type: "photo"; filePath: string; previewPath: string }
-  | { type: "link"; preview: LinkPreview };
+  | { type: "link"; preview: LinkPreview }
+  | {
+      type: "pdf" | "video" | "file";
+      filePath: string;
+      /** Null when the browser could not make a preview image. */
+      previewPath: string | null;
+      meta: FileMeta;
+      allowDownload: boolean;
+    };
 
 export type CreatePostInput = {
   projectId: string;
@@ -47,7 +56,7 @@ export async function createPost(input: CreatePostInput): Promise<CreatePostResu
   }
   const attachments = Array.isArray(input.attachments) ? input.attachments : [];
   if (attachments.length === 0) {
-    return { ok: false, message: "Add at least one photo or link to post." };
+    return { ok: false, message: "Add at least one attachment to post." };
   }
   if (attachments.length > POST_LIMITS.attachments) {
     return {
@@ -68,12 +77,39 @@ export async function createPost(input: CreatePostInput): Promise<CreatePostResu
   }
 
   const folder = attachmentFolder(input.projectId, user.id);
+  const inFolder = (path: unknown) =>
+    typeof path === "string" && path.startsWith(folder) && !path.includes("..");
   const rows: Json[] = [];
   for (const attachment of attachments) {
-    if (attachment.type === "photo") {
+    if (attachment.type === "pdf" || attachment.type === "video" || attachment.type === "file") {
+      const { filePath, previewPath, meta } = attachment;
+      if (!inFolder(filePath) || (previewPath !== null && !inFolder(previewPath))) {
+        return { ok: false, message: "One of the files didn't upload correctly. Remove it and try again." };
+      }
+      const size = Number(meta?.size);
+      if (!Number.isFinite(size) || size <= 0 || size > MAX_FILE_BYTES) {
+        return { ok: false, message: "Files can be up to 25 MB each." };
+      }
+      const stored: FileMeta = {
+        name: text(meta.name, 200) || "file",
+        size,
+        mime: text(meta.mime, 100) || "application/octet-stream",
+        ...(Number.isFinite(Number(meta.pages)) && attachment.type === "pdf"
+          ? { pages: Math.round(Number(meta.pages)) }
+          : {}),
+        ...(Number.isFinite(Number(meta.duration)) && attachment.type === "video"
+          ? { duration: Math.round(Number(meta.duration)) }
+          : {}),
+      };
+      rows.push({
+        type: attachment.type,
+        file_url: filePath,
+        preview_url: previewPath,
+        meta: stored,
+        allow_download: attachment.allowDownload === true,
+      });
+    } else if (attachment.type === "photo") {
       const { filePath, previewPath } = attachment;
-      const inFolder = (path: unknown) =>
-        typeof path === "string" && path.startsWith(folder) && !path.includes("..");
       if (!inFolder(filePath) || !inFolder(previewPath)) {
         return { ok: false, message: "One of the photos didn't upload correctly. Remove it and try again." };
       }
