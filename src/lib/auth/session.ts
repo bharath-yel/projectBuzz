@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { connection } from "next/server";
 import { cache } from "react";
 import type { Tables } from "@/lib/database.types";
 import { createClient } from "@/lib/supabase/server";
@@ -11,6 +12,9 @@ export type Profile = Tables<"profiles">;
  * component inside a <Suspense> boundary. Deduped per request.
  */
 export const getCurrentUser = cache(async (): Promise<{ id: string }> => {
+  // Session checks compare token expiry against the clock, so this must only
+  // run for a real request, never while Next.js prerenders or prefetches.
+  await connection();
   const supabase = await createClient();
   const { data } = await supabase.auth.getClaims();
   const userId = data?.claims?.sub;
