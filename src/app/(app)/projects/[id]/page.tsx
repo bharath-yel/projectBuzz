@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { FollowButton } from "@/components/FollowButton";
+import { ContributorManager, LeaveProjectButton } from "@/components/projects/ContributorManager";
 import { ProjectSkeleton, ProjectView } from "@/components/projects/ProjectView";
 import { buttonSecondary } from "@/components/ui/styles";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -56,6 +57,13 @@ async function Project({ id }: { id: string }) {
       posts={posts}
       canPost={canPost}
       streak={streak}
+      manage={
+        project.owner.id === user.id ? (
+          <ContributorManager projectId={project.id} contributors={project.contributors} />
+        ) : canPost ? (
+          <LeaveProjectButton projectId={project.id} userId={user.id} />
+        ) : null
+      }
       action={
         canPost ? null : (
           <FollowButton

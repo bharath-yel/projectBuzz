@@ -18,9 +18,11 @@ type ProjectViewProps = {
   streak: number;
   /** Shown beside the title for people who are not on the project, e.g. a follow button. */
   action?: ReactNode;
+  /** Shown under the people list: contributor management for the owner, or "leave" for a contributor. */
+  manage?: ReactNode;
 };
 
-export function ProjectView({ project, posts, canPost, action, streak }: ProjectViewProps) {
+export function ProjectView({ project, posts, canPost, action, streak, manage }: ProjectViewProps) {
   const people = [
     { ...project.owner, label: "Owner" },
     ...project.contributors.map((person) => ({
@@ -106,6 +108,7 @@ export function ProjectView({ project, posts, canPost, action, streak }: Project
               </li>
             ))}
           </ul>
+          {manage}
         </div>
       </header>
 
