@@ -1,17 +1,21 @@
 import type { Metadata } from "next";
-import { EmptyState } from "@/components/EmptyState";
-import { PageHeader } from "@/components/PageHeader";
+import { Suspense } from "react";
+import { ProfileSkeleton, ProfileView } from "@/components/profile/ProfileView";
+import { getCurrentProfile } from "@/lib/auth/session";
+import { getProfileProjects } from "@/lib/profile/queries";
 
 export const metadata: Metadata = { title: "Profile" };
 
 export default function ProfilePage() {
   return (
-    <>
-      <PageHeader title="Profile" subtitle="Your projects, all in one place" />
-      <EmptyState icon="🌱" title="No projects yet">
-        Your project grid will live here. Start with an idea or a rough
-        prototype and build your portfolio as you go.
-      </EmptyState>
-    </>
+    <Suspense fallback={<ProfileSkeleton />}>
+      <OwnProfile />
+    </Suspense>
   );
+}
+
+async function OwnProfile() {
+  const profile = await getCurrentProfile();
+  const projects = await getProfileProjects(profile.id);
+  return <ProfileView profile={profile} projects={projects} isOwn />;
 }
