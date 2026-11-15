@@ -1,8 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" fill="#003057"/>
-  <!-- Honeycomb cell: a nod to "buzz" and to building things piece by piece -->
-  <path d="M256 112 L380.7 184 L380.7 328 L256 400 L131.3 328 L131.3 184 Z" fill="#B3A369"/>
-  <!-- Upward stroke: progress -->
-  <path d="M200 296 L240 256 L272 280 L316 220" fill="none" stroke="#003057" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M278 216 L320 216 L320 258" fill="none" stroke="#003057" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
-</svg>

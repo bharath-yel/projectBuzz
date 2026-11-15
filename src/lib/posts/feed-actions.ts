@@ -9,6 +9,7 @@ export async function loadFeedPage(input: {
   tab: FeedTab;
   tagId: string | null;
   cursor: string;
+  authorId?: string | null;
 }): Promise<FeedPage> {
   const user = await getCurrentUser();
   const cursor = new Date(input.cursor);
@@ -18,5 +19,6 @@ export async function loadFeedPage(input: {
     tab: input.tab === "following" ? "following" : "all",
     tagId: isUuid(input.tagId) ? input.tagId : null,
     cursor: input.cursor,
+    authorId: isUuid(input.authorId) ? input.authorId : null,
   });
 }

@@ -27,6 +27,11 @@ type FeedQuery = {
   tagId: string | null;
   /** created_at of the last post already shown. */
   cursor: string | null;
+  /**
+   * Only this person's posts (their profile). Includes posts on private
+   * projects the viewer is allowed to see; row level security decides that.
+   */
+  authorId?: string | null;
 };
 
 const EMPTY: FeedPage = { posts: [], nextCursor: null };
@@ -49,7 +54,7 @@ async function projectIdsWithTags(
  * One page of the feed: posts from public projects, newest first.
  * "following" narrows it to projects, people and tags the user follows.
  */
-export async function getFeedPage({ userId, tab, tagId, cursor }: FeedQuery): Promise<FeedPage> {
+export async function getFeedPage({ userId, tab, tagId, cursor, authorId }: FeedQuery): Promise<FeedPage> {
   const supabase = await createClient();
 
   let query = supabase
@@ -60,9 +65,10 @@ export async function getFeedPage({ userId, tab, tagId, cursor }: FeedQuery): Pr
        project:projects!inner(id, title, stage, visibility),
        attachments(id, type, file_url, preview_url, meta, allow_download, sort_order)`,
     )
-    .eq("project.visibility", "public")
     .order("created_at", { ascending: false })
     .limit(FEED_PAGE_SIZE + 1);
+
+  query = authorId ? query.eq("author_id", authorId) : query.eq("project.visibility", "public");
 
   if (cursor) query = query.lt("created_at", cursor);
 

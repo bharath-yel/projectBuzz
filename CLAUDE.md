@@ -12,7 +12,7 @@ Built for the GT Campus Solutions Hackathon. Optimize for a working, polished mo
 - **gatech.edu only.** Only `@gatech.edu` emails can sign up. Enforce this in the UI and server-side.
 - **Login is magic link for now** (`signInWithOtp` plus an `/auth/callback` route). A 6-digit code entry screen comes later, once custom SMTP is set up. Structure the auth flow so the code screen can be added without a rewrite.
 - **Tags** have a type: `category`, `class`, or `club`. Projects can have many tags.
-- **Reactions:** `kudos` is the basic one-tap like and the most prominent reaction. Alongside it are three signal reactions: `use_this` ("I'd use this"), `can_help` ("I can help"), and `tried_this` ("I've tried this").
+- **Reactions:** `kudos` is the basic one-tap like (shown as Buzz) and the most prominent reaction. Alongside it are nine yellow jacket sticker reactions (`bee_*`), picked from a tray behind one button; a post only shows the stickers people have used. The old signal reactions (`use_this`, `can_help`, `tried_this`) remain in the enum but are no longer shown in the UI.
 - **Feedback requests:** a post can include an optional `feedback_question`. Show it prominently and frame comments as answers to it.
 - **Contributor tagging:** a project owner can add other users as contributors. The project then appears on their profiles too.
 - **Out of scope. Do NOT build:** role or job postings, "looking for" listings, join requests, monthly challenges, DMs, revenue metrics.

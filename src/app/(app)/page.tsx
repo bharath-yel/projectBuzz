@@ -3,19 +3,35 @@ import { Suspense } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { FeedList } from "@/components/feed/FeedList";
 import { FollowButton } from "@/components/FollowButton";
+import { BeeBanner } from "@/components/feed/BeeBanner";
+import { LogoMark } from "@/components/Logo";
 import { PageHeader } from "@/components/PageHeader";
 import { buttonPrimary, buttonSecondary } from "@/components/ui/styles";
+import type { Enums } from "@/lib/database.types";
 import { getCurrentUser } from "@/lib/auth/session";
 import { getMyFollows } from "@/lib/follows/queries";
 import { getFeedPage, type FeedTab } from "@/lib/posts/feed";
+import { TAG_TYPE_LABEL } from "@/lib/projects/constants";
 import { getAllTags, type Tag } from "@/lib/projects/queries";
+
+const TAG_GROUPS: Enums<"tag_type">[] = ["category", "class", "club"];
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;
 
 export default function FeedPage({ searchParams }: { searchParams: SearchParams }) {
   return (
     <>
-      <PageHeader title="Feed" subtitle="What Yellow Jackets are building" />
+      <BeeBanner>
+        <PageHeader
+          title="Buzzing Now"
+          subtitle="What Yellow Jackets are building"
+          after={<LogoMark size={36} />}
+          centered
+          flush
+          inverse
+          loud
+        />
+      </BeeBanner>
       <Suspense fallback={<FeedSkeleton />}>
         {searchParams.then((query) => (
           <Feed
@@ -47,73 +63,105 @@ async function Feed({ tab, tagSlug }: { tab: FeedTab; tagSlug: string | null }) 
     cursor: null,
   });
 
-  // Chips: the active tag, then tags you follow, then every category.
   const followed = new Set(follows.tags);
-  const chips: Tag[] = [];
-  for (const tag of [
-    ...(activeTag ? [activeTag] : []),
-    ...tags.filter((tag) => followed.has(tag.id)),
-    ...tags.filter((tag) => tag.type === "category"),
-  ]) {
-    if (!chips.some((chip) => chip.id === tag.id)) chips.push(tag);
-  }
+  const groups: { label: string; tags: Tag[] }[] = [
+    { label: "Tags you follow", tags: tags.filter((tag) => followed.has(tag.id)) },
+    ...TAG_GROUPS.map((type) => ({
+      label: TAG_TYPE_LABEL[type],
+      tags: tags.filter((tag) => tag.type === type),
+    })),
+  ].filter((group) => group.tags.length > 0);
 
   const tabs: { value: FeedTab; label: string }[] = [
     { value: "all", label: "For you" },
     { value: "following", label: "Following" },
   ];
-  const chipClass = (active: boolean) =>
-    `inline-flex min-h-11 shrink-0 items-center rounded-full border px-4 text-sm whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gt-navy ${
-      active
-        ? "border-gt-navy bg-gt-navy font-medium text-white"
-        : "border-border bg-background text-foreground hover:border-gt-navy"
+  const focusRing =
+    "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gt-navy";
+  const optionClass = (active: boolean) =>
+    `flex min-h-11 items-center justify-between gap-3 rounded-lg px-3 text-sm transition-colors hover:bg-surface ${focusRing} ${
+      active ? "font-semibold text-gt-navy" : "text-foreground"
     }`;
+  const check = (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="m5 12 5 5 9-10" />
+    </svg>
+  );
 
   return (
     <>
-      <nav aria-label="Feed" className="mb-3 grid grid-cols-2 rounded-xl border border-border bg-background p-1">
-        {tabs.map((option) => (
-          <Link
-            key={option.value}
-            href={feedHref(option.value, tagSlug)}
-            aria-current={tab === option.value ? "page" : undefined}
-            className={`flex min-h-11 items-center justify-center rounded-lg text-[15px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gt-navy ${
-              tab === option.value ? "bg-gt-navy text-white" : "text-muted hover:text-gt-navy"
-            }`}
-          >
-            {option.label}
-          </Link>
-        ))}
-      </nav>
+      {/* One quiet row: text tabs on the left, a single topic menu on the right. */}
+      <div className="relative mb-4 flex items-end justify-between gap-3 border-b border-border">
+        <nav aria-label="Buzzing Now" className="flex gap-5">
+          {tabs.map((option) => (
+            <Link
+              key={option.value}
+              href={feedHref(option.value, tagSlug)}
+              aria-current={tab === option.value ? "page" : undefined}
+              className={`-mb-px flex min-h-11 items-center border-b-2 text-[15px] font-semibold transition-colors ${focusRing} ${
+                tab === option.value
+                  ? "border-gt-gold text-gt-navy"
+                  : "border-transparent text-muted hover:text-gt-navy"
+              }`}
+            >
+              {option.label}
+            </Link>
+          ))}
+        </nav>
 
-      <nav
-        aria-label="Filter by tag"
-        className="-mx-4 mb-4 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] md:-mx-6 md:px-6 [&::-webkit-scrollbar]:hidden"
-      >
-        <Link href={feedHref(tab, null)} aria-current={!activeTag ? "true" : undefined} className={chipClass(!activeTag)}>
-          All
-        </Link>
-        {chips.map((tag) => (
-          <Link
-            key={tag.id}
-            href={feedHref(tab, tag.slug)}
-            aria-current={activeTag?.id === tag.id ? "true" : undefined}
-            className={chipClass(activeTag?.id === tag.id)}
+        {/* key: the menu closes itself after a topic is picked. */}
+        <details key={`${tab}:${tagSlug ?? ""}`} className="group">
+          <summary
+            className={`flex min-h-11 cursor-pointer list-none items-center gap-1.5 rounded-lg text-sm text-muted transition-colors hover:text-gt-navy [&::-webkit-details-marker]:hidden ${focusRing}`}
           >
-            {tag.name}
-          </Link>
-        ))}
-        <Link href="/explore" className={`${chipClass(false)} border-dashed text-muted`}>
-          More tags
-        </Link>
-      </nav>
+            Topic
+            <span className="max-w-[9rem] truncate font-semibold text-gt-navy">
+              {activeTag ? activeTag.name : "All"}
+            </span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="transition-transform group-open:rotate-180">
+              <path d="m6 9 6 6 6-6" />
+            </svg>
+          </summary>
+          <nav
+            aria-label="Filter by topic"
+            className="absolute top-full right-0 z-20 mt-2 max-h-[60vh] w-72 max-w-full overflow-y-auto rounded-2xl border border-border bg-background p-2 shadow-lg"
+          >
+            <Link href={feedHref(tab, null)} aria-current={!activeTag ? "true" : undefined} className={optionClass(!activeTag)}>
+              All topics
+              {!activeTag ? check : null}
+            </Link>
+            {groups.map((group) => (
+              <div key={group.label} className="mt-2 border-t border-border pt-2">
+                <p className="px-3 pb-1 text-[11px] font-semibold tracking-wider text-muted uppercase">
+                  {group.label}
+                </p>
+                {group.tags.map((tag) => (
+                  <Link
+                    key={tag.id}
+                    href={feedHref(tab, tag.slug)}
+                    aria-current={activeTag?.id === tag.id ? "true" : undefined}
+                    className={optionClass(activeTag?.id === tag.id)}
+                  >
+                    <span className="min-w-0 truncate">{tag.name}</span>
+                    {activeTag?.id === tag.id ? check : null}
+                  </Link>
+                ))}
+              </div>
+            ))}
+          </nav>
+        </details>
+      </div>
 
       {activeTag ? (
-        <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-border bg-background px-4 py-3">
+        <div className="mb-4 flex items-center justify-between gap-3">
           <p className="min-w-0 text-sm text-muted">
-            Posts tagged{" "}
+            Showing{" "}
             <Link href={`/tags/${activeTag.slug}`} className="font-semibold text-gt-navy hover:underline">
               {activeTag.name}
+            </Link>
+            <span aria-hidden className="mx-1.5">·</span>
+            <Link href={feedHref(tab, null)} className="font-medium text-gt-navy underline underline-offset-4">
+              Clear
             </Link>
           </p>
           <FollowButton
@@ -176,9 +224,8 @@ async function Feed({ tab, tagSlug }: { tab: FeedTab; tagSlug: string | null }) 
 
 function FeedSkeleton() {
   return (
-    <div className="flex animate-pulse flex-col gap-4" aria-busy="true" aria-label="Loading feed">
-      <div className="h-13 rounded-xl border border-border bg-background" />
-      <div className="h-11 w-2/3 rounded-full bg-background" />
+    <div className="flex animate-pulse flex-col gap-4" aria-busy="true" aria-label="Loading Buzzing Now">
+      <div className="h-11 border-b border-border" />
       <div className="h-72 rounded-2xl border border-border bg-background" />
       <div className="h-72 rounded-2xl border border-border bg-background" />
     </div>

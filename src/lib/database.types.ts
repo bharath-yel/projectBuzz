@@ -61,6 +61,7 @@ export type Database = {
           body: string
           created_at: string
           id: string
+          is_feedback: boolean
           parent_id: string | null
           post_id: string
         }
@@ -69,6 +70,7 @@ export type Database = {
           body: string
           created_at?: string
           id?: string
+          is_feedback?: boolean
           parent_id?: string | null
           post_id: string
         }
@@ -77,6 +79,7 @@ export type Database = {
           body?: string
           created_at?: string
           id?: string
+          is_feedback?: boolean
           parent_id?: string | null
           post_id?: string
         }
@@ -183,33 +186,42 @@ export type Database = {
           avatar_url: string | null
           bio: string | null
           created_at: string
+          github_url: string | null
           gt_email: string
           id: string
+          linkedin_url: string | null
           major: string | null
           name: string
           skills: string[]
+          website_url: string | null
           year: string | null
         }
         Insert: {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          github_url?: string | null
           gt_email: string
           id: string
+          linkedin_url?: string | null
           major?: string | null
           name?: string
           skills?: string[]
+          website_url?: string | null
           year?: string | null
         }
         Update: {
           avatar_url?: string | null
           bio?: string | null
           created_at?: string
+          github_url?: string | null
           gt_email?: string
           id?: string
+          linkedin_url?: string | null
           major?: string | null
           name?: string
           skills?: string[]
+          website_url?: string | null
           year?: string | null
         }
         Relationships: []
@@ -287,7 +299,9 @@ export type Database = {
           id: string
           owner_id: string
           problem: string | null
+          seeking_collaborators: boolean
           stage: Database["public"]["Enums"]["project_stage"]
+          status: Database["public"]["Enums"]["project_status"]
           title: string
           visibility: Database["public"]["Enums"]["project_visibility"]
         }
@@ -297,7 +311,9 @@ export type Database = {
           id?: string
           owner_id?: string
           problem?: string | null
+          seeking_collaborators?: boolean
           stage?: Database["public"]["Enums"]["project_stage"]
+          status?: Database["public"]["Enums"]["project_status"]
           title: string
           visibility?: Database["public"]["Enums"]["project_visibility"]
         }
@@ -307,7 +323,9 @@ export type Database = {
           id?: string
           owner_id?: string
           problem?: string | null
+          seeking_collaborators?: boolean
           stage?: Database["public"]["Enums"]["project_stage"]
+          status?: Database["public"]["Enums"]["project_status"]
           title?: string
           visibility?: Database["public"]["Enums"]["project_visibility"]
         }
@@ -480,8 +498,22 @@ export type Database = {
       follow_target_type: "user" | "project" | "tag"
       post_kind: "ship" | "milestone"
       project_stage: "idea" | "prototype" | "launched"
+      project_status: "active" | "completed" | "dropped"
       project_visibility: "public" | "private"
-      reaction_type: "kudos" | "use_this" | "can_help" | "tried_this"
+      reaction_type:
+        | "kudos"
+        | "use_this"
+        | "can_help"
+        | "tried_this"
+        | "bee_love"
+        | "bee_clap"
+        | "bee_party"
+        | "bee_thumbs_up"
+        | "bee_ok"
+        | "bee_wow"
+        | "bee_curious"
+        | "bee_oof"
+        | "bee_cry"
       tag_type: "category" | "class" | "club"
     }
     CompositeTypes: {
@@ -614,8 +646,23 @@ export const Constants = {
       follow_target_type: ["user", "project", "tag"],
       post_kind: ["ship", "milestone"],
       project_stage: ["idea", "prototype", "launched"],
+      project_status: ["active", "completed", "dropped"],
       project_visibility: ["public", "private"],
-      reaction_type: ["kudos", "use_this", "can_help", "tried_this"],
+      reaction_type: [
+        "kudos",
+        "use_this",
+        "can_help",
+        "tried_this",
+        "bee_love",
+        "bee_clap",
+        "bee_party",
+        "bee_thumbs_up",
+        "bee_ok",
+        "bee_wow",
+        "bee_curious",
+        "bee_oof",
+        "bee_cry",
+      ],
       tag_type: ["category", "class", "club"],
     },
   },

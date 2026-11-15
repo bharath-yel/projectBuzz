@@ -1,42 +1,65 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { ContributionGrid } from "@/components/profile/ContributionGrid";
-import { FreezeControl } from "@/components/profile/FreezeControl";
+import { EmptyState } from "@/components/EmptyState";
+import { FeedList } from "@/components/feed/FeedList";
 import { ProfileHeader } from "@/components/profile/ProfileHeader";
 import { ProjectGrid } from "@/components/profile/ProjectGrid";
-import { buttonSecondary } from "@/components/ui/styles";
+import { buttonPrimary, buttonSecondary } from "@/components/ui/styles";
 import { isProfileComplete } from "@/lib/auth/post-sign-in";
 import type { Profile } from "@/lib/auth/session";
+import type { FeedPage } from "@/lib/posts/feed";
 import type { ProfileProject } from "@/lib/profile/queries";
-import type { ActivityWeek, MyStreakStatus } from "@/lib/streaks/queries";
+import type { ActivityWeek } from "@/lib/streaks/queries";
+
+export type ProfileTab = "recent" | "projects";
+
+/** Reads the tab from a page's search params. Recent is the default. */
+export function profileTabFrom(value: string | string[] | undefined): ProfileTab {
+  return value === "projects" ? "projects" : "recent";
+}
 
 type ProfileViewProps = {
   profile: Profile;
+  /** Which tab is showing under the profile card. */
+  tab: ProfileTab;
+  /** This profile's URL, used for the tab links. */
+  basePath: string;
+  /** First page of the person's posts. Only loaded on the Recent tab. */
+  recent?: FeedPage;
   projects: (ProfileProject & { streak?: number })[];
   isOwn: boolean;
   /** Personal streak, in weeks. */
   streak: number;
+  followers: number;
+  following: number;
   /** Weekly activity for the contribution grid, oldest first. */
   activity: ActivityWeek[];
-  /** Your own freeze allowance. Only passed on your own profile. */
-  freeze?: Pick<MyStreakStatus, "freezesLeft" | "freezableWeek">;
   /** Shown in the header on someone else's profile, e.g. a follow button. */
   action?: ReactNode;
 };
 
-
 /** A person's profile. Works for your own profile and, later, anyone else's. */
 export function ProfileView({
   profile,
+  tab,
+  basePath,
+  recent,
   projects,
   isOwn,
   action,
   streak,
+  followers,
+  following,
   activity,
-  freeze,
 }: ProfileViewProps) {
+  const tabs: { value: ProfileTab; label: string; href: string }[] = [
+    { value: "recent", label: "Recent", href: basePath },
+    { value: "projects", label: "Projects", href: `${basePath}?tab=projects` },
+  ];
+
+  // data-wide: the app shell widens the main column for this screen on desktop.
   return (
-    <div className="flex flex-col gap-7">
+    <div data-wide className="flex flex-col gap-3">
       {isOwn && !isProfileComplete(profile) ? (
         <Link
           href="/onboarding"
@@ -47,60 +70,85 @@ export function ProfileView({
         </Link>
       ) : null}
 
-      <ProfileHeader profile={profile} isOwn={isOwn} action={action} streak={streak} />
-
-      <section aria-labelledby="skills-heading">
-        <h2 id="skills-heading" className="mb-3 text-lg font-semibold text-gt-navy">
-          Skills
-        </h2>
-        {profile.skills.length > 0 ? (
-          <ul className="flex flex-wrap gap-2">
-            {profile.skills.map((skill) => (
-              <li
-                key={skill}
-                className="rounded-full bg-gt-gold/25 px-3 py-1.5 text-sm font-medium text-gt-navy"
-              >
-                {skill}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm leading-relaxed text-muted">
-            {isOwn
-              ? "No skills listed yet. Add a few so collaborators know what to ask you about."
-              : "No skills listed yet."}
-          </p>
-        )}
-      </section>
-
-      <section>
-        <div className="mb-3 flex items-center justify-between gap-3">
-          <h2 className="flex items-baseline gap-2 text-lg font-semibold text-gt-navy">
-            Projects
-            {projects.length > 0 ? (
-              <span className="text-sm font-normal text-muted">{projects.length}</span>
-            ) : null}
-          </h2>
-          {isOwn ? (
-            <Link href="/projects/new" className={buttonSecondary}>
-              New project
-            </Link>
-          ) : null}
-        </div>
-        <ProjectGrid projects={projects} isOwn={isOwn} />
-      </section>
-
-      <section>
-        <h2 className="mb-3 text-lg font-semibold text-gt-navy">Activity</h2>
-        <ContributionGrid weeks={activity} />
-        {isOwn && freeze && activity.length > 0 ? (
-          <FreezeControl
-            freezesLeft={freeze.freezesLeft}
-            freezableWeek={freeze.freezableWeek}
-            currentWeek={activity[activity.length - 1].week_start}
+      {/* Profile card on top, tabs and posts underneath, at every width. */}
+      <div className="flex flex-col gap-3">
+        <div>
+          <ProfileHeader
+            profile={profile}
+            isOwn={isOwn}
+            action={action}
+            streak={streak}
+            followers={followers}
+            following={following}
+            projectCount={projects.length}
+            activity={activity}
+            seeking={projects.filter(
+              (project) => project.role === "owner" && project.seeking_collaborators,
+            )}
           />
-        ) : null}
-      </section>
+        </div>
+
+        <div className="flex min-w-0 flex-col gap-3">
+          <div className="flex flex-col gap-3">
+            <nav
+              aria-label="Profile sections"
+              className="grid grid-cols-2 rounded-xl border border-border bg-background p-1"
+            >
+              {tabs.map((option) => (
+                <Link
+                  key={option.value}
+                  href={option.href}
+                  scroll={false}
+                  aria-current={tab === option.value ? "page" : undefined}
+                  className={`flex min-h-11 items-center justify-center gap-2 rounded-lg text-[15px] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gt-navy ${
+                    tab === option.value ? "bg-gt-navy text-white" : "text-muted hover:text-gt-navy"
+                  }`}
+                >
+                  {option.label}
+                  {option.value === "projects" && projects.length > 0 ? (
+                    <span className="text-sm font-normal opacity-75">{projects.length}</span>
+                  ) : null}
+                </Link>
+              ))}
+            </nav>
+
+            {tab === "recent" ? (
+              recent && recent.posts.length > 0 ? (
+                <FeedList
+                  initialPosts={recent.posts}
+                  initialCursor={recent.nextCursor}
+                  tab="all"
+                  tagId={null}
+                  authorId={profile.id}
+                />
+              ) : (
+                <div className="flex flex-col items-center gap-4">
+                  <EmptyState icon="🐝" title="No posts yet">
+                    {isOwn
+                      ? "Your updates will show up here. Rough drafts and half-working demos are welcome."
+                      : "Nothing posted yet. Check back soon."}
+                  </EmptyState>
+                  {isOwn ? (
+                    <Link href="/post" className={buttonPrimary}>
+                      Post an update
+                    </Link>
+                  ) : null}
+                </div>
+              )
+            ) : (
+              <section aria-label="Projects" className="flex flex-col gap-3">
+                {isOwn ? (
+                  <Link href="/projects/new" className={`${buttonSecondary} self-end`}>
+                    New project
+                  </Link>
+                ) : null}
+                <ProjectGrid projects={projects} isOwn={isOwn} />
+              </section>
+            )}
+          </div>
+
+        </div>
+      </div>
     </div>
   );
 }
@@ -108,7 +156,12 @@ export function ProfileView({
 /** Shown while the profile loads. Same outline as the real thing. */
 export function ProfileSkeleton() {
   return (
-    <div className="flex animate-pulse flex-col gap-7" aria-busy="true" aria-label="Loading profile">
+    <div
+      data-wide
+      className="flex animate-pulse flex-col gap-3"
+      aria-busy="true"
+      aria-label="Loading profile"
+    >
       <div className="rounded-2xl border border-border bg-background p-5">
         <div className="flex items-center gap-4">
           <div className="h-20 w-20 shrink-0 rounded-full bg-surface" />
@@ -120,9 +173,9 @@ export function ProfileSkeleton() {
         <div className="mt-5 h-4 w-full rounded bg-surface" />
         <div className="mt-2 h-4 w-2/3 rounded bg-surface" />
       </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-3">
-        <div className="aspect-[4/5] rounded-2xl border border-border bg-background" />
-        <div className="aspect-[4/5] rounded-2xl border border-border bg-background" />
+      <div className="flex flex-col gap-3">
+        <div className="h-13 rounded-xl border border-border bg-background" />
+        <div className="h-72 rounded-2xl border border-border bg-background" />
       </div>
     </div>
   );

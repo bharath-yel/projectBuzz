@@ -4,6 +4,8 @@ import { Suspense } from "react";
 import { EmptyState } from "@/components/EmptyState";
 import { FollowButton } from "@/components/FollowButton";
 import { ContributorManager, LeaveProjectButton } from "@/components/projects/ContributorManager";
+import { CollaboratorToggle } from "@/components/projects/CollaboratorToggle";
+import { ProjectStatusPicker } from "@/components/projects/ProjectStatusPicker";
 import { ProjectSkeleton, ProjectView } from "@/components/projects/ProjectView";
 import { buttonSecondary } from "@/components/ui/styles";
 import { getCurrentUser } from "@/lib/auth/session";
@@ -36,7 +38,7 @@ async function Project({ id }: { id: string }) {
           It may be private, or the link may be wrong.
         </EmptyState>
         <Link href="/" className={buttonSecondary}>
-          Back to the feed
+          Back to Buzzing Now
         </Link>
       </div>
     );
@@ -57,6 +59,14 @@ async function Project({ id }: { id: string }) {
       posts={posts}
       canPost={canPost}
       streak={streak}
+      statusControl={
+        project.owner.id === user.id ? (
+          <>
+            <ProjectStatusPicker projectId={project.id} initial={project.status} />
+            <CollaboratorToggle projectId={project.id} initial={project.seeking_collaborators} />
+          </>
+        ) : null
+      }
       manage={
         project.owner.id === user.id ? (
           <ContributorManager projectId={project.id} contributors={project.contributors} />

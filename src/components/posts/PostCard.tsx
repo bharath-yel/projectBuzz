@@ -86,22 +86,12 @@ export function PostCard({ post, project }: PostCardProps) {
         </div>
       ) : null}
 
-      {post.feedback_question ? (
-        <div className="mt-3 rounded-xl border-l-4 border-gt-gold bg-gt-gold/15 px-4 py-3">
-          <p className="text-xs font-semibold tracking-wide text-gt-navy uppercase">
-            Feedback wanted
-          </p>
-          <p className="mt-0.5 text-[15px] leading-snug font-medium break-words text-gt-navy">
-            {post.feedback_question}
-          </p>
-        </div>
-      ) : null}
-
       <PostEngagement
         postId={post.id}
         reactions={post.reactions}
         commentCount={post.commentCount}
         answerCount={post.answerCount}
+        answeredByMe={post.answeredByMe}
         feedbackQuestion={post.feedback_question}
       />
     </article>

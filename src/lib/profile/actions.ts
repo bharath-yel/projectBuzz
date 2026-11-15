@@ -5,13 +5,16 @@ import { getCurrentUser } from "@/lib/auth/session";
 import {
   avatarUrlPrefix,
   cleanSkills,
+  normalizeGitHub,
+  normalizeLinkedIn,
+  normalizeWebsite,
   PROFILE_LIMITS,
   YEAR_OPTIONS,
 } from "@/lib/profile/constants";
 import { createClient } from "@/lib/supabase/server";
 
 export type ProfileFormState = {
-  errors: Partial<Record<"name" | "major" | "year" | "bio" | "form", string>>;
+  errors: Partial<Record<"name" | "major" | "year" | "bio" | "linkedin" | "github" | "website" | "form", string>>;
 };
 
 function parseSkills(raw: FormDataEntryValue | null): string[] {
@@ -38,6 +41,12 @@ export async function saveProfile(
   const major = String(formData.get("major") ?? "").trim();
   const year = String(formData.get("year") ?? "");
   const bio = String(formData.get("bio") ?? "").trim();
+  const linkedinInput = String(formData.get("linkedin") ?? "").trim();
+  const linkedin = linkedinInput ? normalizeLinkedIn(linkedinInput) : null;
+  const githubInput = String(formData.get("github") ?? "").trim();
+  const github = githubInput ? normalizeGitHub(githubInput) : null;
+  const websiteInput = String(formData.get("website") ?? "").trim();
+  const website = websiteInput ? normalizeWebsite(websiteInput) : null;
   const skills = parseSkills(formData.get("skills"));
   const avatarUrl = String(formData.get("avatar_url") ?? "");
   const mode = formData.get("mode") === "edit" ? "edit" : "onboarding";
@@ -53,6 +62,12 @@ export async function saveProfile(
     errors.year = "Pick your year.";
   if (bio.length > PROFILE_LIMITS.bio)
     errors.bio = `Keep your bio under ${PROFILE_LIMITS.bio} characters.`;
+  if (linkedinInput && !linkedin)
+    errors.linkedin = "Paste your LinkedIn profile link, like linkedin.com/in/yourname.";
+  if (githubInput && !github)
+    errors.github = "Paste your GitHub profile link, like github.com/yourname.";
+  if (websiteInput && !website)
+    errors.website = "Enter a web address, like yourname.dev.";
   if (Object.keys(errors).length > 0) return { errors };
 
   // Only accept an avatar that lives in this user's own avatar folder.
@@ -67,6 +82,9 @@ export async function saveProfile(
       major,
       year,
       bio: bio || null,
+      linkedin_url: linkedin,
+      github_url: github,
+      website_url: website,
       skills,
       avatar_url: avatar,
     })

@@ -3,12 +3,15 @@ import Link from "next/link";
 import { EmptyState } from "@/components/EmptyState";
 import { StreakBadge } from "@/components/StreakBadge";
 import type { Enums } from "@/lib/database.types";
-import { STAGE_LABEL } from "@/lib/projects/constants";
+import { STAGE_LABEL, STATUS_BOX, STATUS_DOT, STATUS_LABEL } from "@/lib/projects/constants";
 
 export type ProjectCardData = {
   id: string;
   title: string;
   stage: Enums<"project_stage">;
+  /** Tints the whole card: yellow active, green completed, red dropped. */
+  status: Enums<"project_status">;
+  seeking_collaborators: boolean;
   visibility: Enums<"project_visibility">;
   cover_url: string | null;
   /** Set on profiles, where a card may be a project the person contributes to. */
@@ -22,7 +25,7 @@ function ProjectCard({ project }: { project: ProjectCardData }) {
   return (
     <Link
       href={`/projects/${project.id}`}
-      className="flex h-full flex-col overflow-hidden rounded-2xl border border-border bg-background transition-colors hover:border-gt-navy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gt-navy"
+      className={`flex h-full flex-col overflow-hidden rounded-2xl border transition-colors hover:border-gt-navy focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gt-navy ${STATUS_BOX[project.status]}`}
     >
       <div className="relative aspect-[4/3] bg-surface">
         {project.cover_url ? (
@@ -57,10 +60,24 @@ function ProjectCard({ project }: { project: ProjectCardData }) {
         <h3 className="line-clamp-2 text-[15px] leading-snug font-semibold text-gt-navy">
           {project.title}
         </h3>
+        {project.seeking_collaborators ? (
+          <p className="flex items-center gap-1.5 text-xs font-semibold text-gt-navy">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0">
+              <circle cx="9" cy="8" r="3.5" />
+              <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+              <path d="M19 8v6" />
+              <path d="M16 11h6" />
+            </svg>
+            Looking for collaborators
+          </p>
+        ) : null}
         <p className="mt-auto flex flex-wrap items-center gap-x-1.5 text-xs text-muted">
-          <span className="rounded-full bg-gt-gold/25 px-2 py-0.5 font-medium text-gt-navy">
-            {STAGE_LABEL[project.stage]}
+          <span className="inline-flex items-center gap-1.5 font-semibold text-gt-navy">
+            <span aria-hidden className={`h-2 w-2 rounded-full ${STATUS_DOT[project.status]}`} />
+            {STATUS_LABEL[project.status]}
           </span>
+          <span aria-hidden>·</span>
+          <span>{STAGE_LABEL[project.stage]}</span>
           {project.role === "contributor" ? (
             <span>{project.roleLabel ? `Contributor · ${project.roleLabel}` : "Contributor"}</span>
           ) : null}

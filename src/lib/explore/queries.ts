@@ -6,12 +6,14 @@ export type ProjectSummary = {
   id: string;
   title: string;
   stage: Enums<"project_stage">;
+  status: Enums<"project_status">;
+  seeking_collaborators: boolean;
   visibility: Enums<"project_visibility">;
   cover_url: string | null;
   created_at: string;
 };
 
-const SUMMARY = "id, title, stage, visibility, cover_url, created_at" as const;
+const SUMMARY = "id, title, stage, status, seeking_collaborators, visibility, cover_url, created_at" as const;
 
 /** Newest public projects, optionally narrowed by a title search. */
 export async function getPublicProjects(search: string | null): Promise<ProjectSummary[]> {
@@ -28,6 +30,30 @@ export async function getPublicProjects(search: string | null): Promise<ProjectS
 
   const { data, error } = await query;
   if (error) throw new Error(`Could not load projects: ${error.message}`);
+  return data;
+}
+
+export type PersonResult = {
+  id: string;
+  name: string;
+  major: string | null;
+  year: string | null;
+  avatar_url: string | null;
+};
+
+/** People whose name matches the search. Empty when there is no search. */
+export async function searchPeople(search: string | null): Promise<PersonResult[]> {
+  // Strip characters that have meaning in a LIKE pattern or a filter string.
+  const term = search?.replace(/[%_,()\\]/g, " ").trim();
+  if (!term) return [];
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("id, name, major, year, avatar_url")
+    .ilike("name", `%${term}%`)
+    .order("name")
+    .limit(12);
+  if (error) throw new Error(`Could not search people: ${error.message}`);
   return data;
 }
 

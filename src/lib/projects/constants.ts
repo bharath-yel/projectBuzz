@@ -50,3 +50,30 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{
 export function isUuid(value: unknown): value is string {
   return typeof value === "string" && UUID_PATTERN.test(value);
 }
+
+/** Where a project stands for its owner. Separate from stage. */
+export const STATUSES: { value: Enums<"project_status">; label: string }[] = [
+  { value: "active", label: "Active" },
+  { value: "completed", label: "Completed" },
+  { value: "dropped", label: "Dropped" },
+];
+
+export const STATUS_LABEL: Record<Enums<"project_status">, string> = {
+  active: "Active",
+  completed: "Completed",
+  dropped: "Dropped",
+};
+
+/** Tint for a whole project box: yellow active, green completed, red dropped. */
+export const STATUS_BOX: Record<Enums<"project_status">, string> = {
+  active: "border-gt-gold/70 bg-gt-gold/20",
+  completed: "border-emerald-300 bg-emerald-50",
+  dropped: "border-red-200 bg-red-50",
+};
+
+/** The dot beside a status name, so the status never relies on the tint alone. */
+export const STATUS_DOT: Record<Enums<"project_status">, string> = {
+  active: "bg-gt-gold",
+  completed: "bg-emerald-600",
+  dropped: "bg-red-500",
+};

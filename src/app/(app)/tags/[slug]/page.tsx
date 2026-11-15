@@ -74,7 +74,7 @@ async function TagView({ slug }: { slug: string }) {
           {followers === 1 ? "follower" : "followers"}
         </p>
         <Link href={`/?tag=${tag.slug}`} className={`${buttonSecondary} mt-4`}>
-          See posts in the feed
+          See posts in Buzzing Now
         </Link>
       </header>
 

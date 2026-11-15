@@ -11,13 +11,15 @@ type FeedListProps = {
   initialCursor: string | null;
   tab: FeedTab;
   tagId: string | null;
+  /** Set on a profile: only this person's posts. */
+  authorId?: string | null;
 };
 
 /**
  * The feed's posts with infinite scroll: the next page loads as the end of
  * the list nears the screen. A "Load more" button does the same by hand.
  */
-export function FeedList({ initialPosts, initialCursor, tab, tagId }: FeedListProps) {
+export function FeedList({ initialPosts, initialCursor, tab, tagId, authorId = null }: FeedListProps) {
   const [posts, setPosts] = useState(initialPosts);
   const [cursor, setCursor] = useState(initialCursor);
   const [failed, setFailed] = useState(false);
@@ -31,7 +33,7 @@ export function FeedList({ initialPosts, initialCursor, tab, tagId }: FeedListPr
     setFailed(false);
     startTransition(async () => {
       try {
-        const page = await loadFeedPage({ tab, tagId, cursor });
+        const page = await loadFeedPage({ tab, tagId, cursor, authorId });
         setPosts((current) => {
           const seen = new Set(current.map((post) => post.id));
           return [...current, ...page.posts.filter((post) => !seen.has(post.id))];

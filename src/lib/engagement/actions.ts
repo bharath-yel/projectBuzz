@@ -12,7 +12,7 @@ import { isUuid } from "@/lib/projects/constants";
 import { createClient } from "@/lib/supabase/server";
 
 const COMMENT_COLUMNS =
-  "id, body, created_at, parent_id, author_id, author:profiles!comments_author_id_fkey(id, name, avatar_url)" as const;
+  "id, body, created_at, parent_id, is_feedback, author_id, author:profiles!comments_author_id_fkey(id, name, avatar_url)" as const;
 
 /** Adds or removes one of the signed-in user's reactions on a post. */
 export async function setReaction(
@@ -64,6 +64,7 @@ export async function getComments(postId: string): Promise<CommentThread[]> {
     created_at: row.created_at,
     author: row.author,
     mine: row.author_id === user.id,
+    isFeedback: row.is_feedback,
   });
   for (const row of data) {
     if (!row.parent_id) threads.set(row.id, { ...toComment(row), replies: [] });
@@ -81,11 +82,14 @@ export type AddCommentResult =
 /**
  * Adds a comment, or a reply when `parentId` is given. Threads are one level
  * deep: a reply to a reply is filed under the same top-level comment.
+ * `isFeedback` marks a top-level comment as an answer to the post's feedback
+ * question; it is ignored on replies and on posts that ask no question.
  */
 export async function addComment(input: {
   postId: string;
   body: string;
   parentId: string | null;
+  isFeedback?: boolean;
 }): Promise<AddCommentResult> {
   await getCurrentUser();
   const body = String(input.body ?? "").trim();
@@ -110,9 +114,19 @@ export async function addComment(input: {
     parentId = parent.parent_id ?? parent.id;
   }
 
+  let isFeedback = false;
+  if (input.isFeedback === true && !parentId) {
+    const { data: post } = await supabase
+      .from("posts")
+      .select("feedback_question")
+      .eq("id", input.postId)
+      .maybeSingle();
+    isFeedback = Boolean(post?.feedback_question);
+  }
+
   const { data, error } = await supabase
     .from("comments")
-    .insert({ post_id: input.postId, body, parent_id: parentId })
+    .insert({ post_id: input.postId, body, parent_id: parentId, is_feedback: isFeedback })
     .select(COMMENT_COLUMNS)
     .single();
   if (error || !data) {
@@ -128,6 +142,7 @@ export async function addComment(input: {
       created_at: data.created_at,
       author: data.author,
       mine: true,
+      isFeedback: data.is_feedback,
     },
   };
 }

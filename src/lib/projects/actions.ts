@@ -6,6 +6,7 @@ import {
   isUuid,
   PROJECT_LIMITS,
   STAGES,
+  STATUSES,
 } from "@/lib/projects/constants";
 import { createClient } from "@/lib/supabase/server";
 
@@ -92,4 +93,39 @@ export async function setProjectCover(
     .eq("id", projectId);
   if (error) console.error("setProjectCover failed:", error.message);
   return { ok: !error };
+}
+
+/** Marks a project active, completed or dropped. Only its owner can. */
+export async function setProjectStatus(
+  projectId: string,
+  status: string,
+): Promise<{ ok: boolean }> {
+  const user = await getCurrentUser();
+  const value = STATUSES.find((option) => option.value === status)?.value;
+  if (!isUuid(projectId) || !value) return { ok: false };
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("projects")
+    .update({ status: value }, { count: "exact" })
+    .eq("id", projectId)
+    .eq("owner_id", user.id);
+  if (error) console.error("setProjectStatus failed:", error.message);
+  return { ok: !error && count === 1 };
+}
+
+/** Turns a project's "Looking for collaborators" badge on or off. Only its owner can. */
+export async function setSeekingCollaborators(
+  projectId: string,
+  on: boolean,
+): Promise<{ ok: boolean }> {
+  const user = await getCurrentUser();
+  if (!isUuid(projectId)) return { ok: false };
+  const supabase = await createClient();
+  const { error, count } = await supabase
+    .from("projects")
+    .update({ seeking_collaborators: on === true }, { count: "exact" })
+    .eq("id", projectId)
+    .eq("owner_id", user.id);
+  if (error) console.error("setSeekingCollaborators failed:", error.message);
+  return { ok: !error && count === 1 };
 }
