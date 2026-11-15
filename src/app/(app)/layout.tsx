@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense, type ReactNode } from "react";
 import { AppNav, AppNavFallback } from "@/components/AppNav";
+import { RailSlot } from "@/components/RailSlot";
 import { RightRail } from "@/components/RightRail";
 
 /**
@@ -31,12 +32,17 @@ export default function AppLayout({ children }: { children: ReactNode }) {
           </div>
         </header>
 
-        <main className="mx-auto w-full max-w-[600px] px-4 pt-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:px-6 md:pt-8 md:pb-10">
+        <main className="mx-auto w-full max-w-[600px] lg:has-[[data-wide]]:max-w-[800px] px-4 pt-5 pb-[calc(5.5rem+env(safe-area-inset-bottom))] md:px-6 md:pt-8 md:pb-10">
           {children}
         </main>
       </div>
 
-      <RightRail />
+      {/* usePathname suspends on routes with unknown dynamic params. */}
+      <Suspense fallback={<div aria-hidden className="hidden w-72 shrink-0 lg:block xl:w-80" />}>
+        <RailSlot>
+          <RightRail />
+        </RailSlot>
+      </Suspense>
     </div>
   );
 }

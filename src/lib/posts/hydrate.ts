@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Enums, Json } from "@/lib/database.types";
 import type { FileMeta } from "@/lib/attachments/kinds";
-import { type ReactionSummary } from "@/lib/engagement/types";
+import { emptyReactions, type ReactionSummary } from "@/lib/engagement/types";
 import type { LinkPreview } from "@/lib/link-preview/types";
 import { ATTACHMENT_BUCKET } from "@/lib/posts/constants";
 import type { TimelinePost } from "@/lib/projects/queries";
@@ -56,7 +56,8 @@ export async function hydratePosts<Row extends PostRow>(
       .from(ATTACHMENT_BUCKET)
       .createSignedUrls([...paths], 60 * 60);
     for (const entry of urls ?? []) {
-      if (entry.path && entry.signedUrl) signed.set(entry.path, entry.signedUrl);
+      if (entry.path && entry.signedUrl)
+        signed.set(entry.path, entry.signedUrl);
     }
   }
   const resolve = (value: string | null) =>
@@ -65,15 +66,24 @@ export async function hydratePosts<Row extends PostRow>(
   // Reactions and comment counts for every post on the page, in two queries.
   const postIds = rows.map((post) => post.id);
   const reactions = new Map<string, ReactionSummary>();
-  const comments = new Map<string, { total: number; topLevel: number }>();
+  const comments = new Map<
+    string,
+    { total: number; feedback: number; answeredByMe: boolean }
+  >();
   for (const id of postIds) {
-    reactions.set(id, { counts: { kudos: 0, use_this: 0, can_help: 0, tried_this: 0 }, mine: [] });
-    comments.set(id, { total: 0, topLevel: 0 });
+    reactions.set(id, emptyReactions());
+    comments.set(id, { total: 0, feedback: 0, answeredByMe: false });
   }
   if (postIds.length > 0) {
     const [reactionRows, commentRows] = await Promise.all([
-      supabase.from("reactions").select("post_id, user_id, type").in("post_id", postIds),
-      supabase.from("comments").select("post_id, parent_id").in("post_id", postIds),
+      supabase
+        .from("reactions")
+        .select("post_id, user_id, type")
+        .in("post_id", postIds),
+      supabase
+        .from("comments")
+        .select("post_id, is_feedback, author_id")
+        .in("post_id", postIds),
     ]);
     for (const row of reactionRows.data ?? []) {
       const summary = reactions.get(row.post_id);
@@ -85,7 +95,10 @@ export async function hydratePosts<Row extends PostRow>(
       const count = comments.get(row.post_id);
       if (!count) continue;
       count.total += 1;
-      if (!row.parent_id) count.topLevel += 1;
+      if (row.is_feedback) {
+        count.feedback += 1;
+        if (row.author_id === userId) count.answeredByMe = true;
+      }
     }
   }
 
@@ -93,7 +106,8 @@ export async function hydratePosts<Row extends PostRow>(
     row: post,
     reactions: reactions.get(post.id)!,
     commentCount: comments.get(post.id)!.total,
-    answerCount: comments.get(post.id)!.topLevel,
+    answerCount: comments.get(post.id)!.feedback,
+    answeredByMe: comments.get(post.id)!.answeredByMe,
     id: post.id,
     kind: post.kind,
     body: post.body,
@@ -112,7 +126,9 @@ export async function hydratePosts<Row extends PostRow>(
           previewUrl: resolve(attachment.preview_url),
           link: isLink ? (attachment.meta as unknown as LinkPreview) : null,
           file:
-            attachment.type === "pdf" || attachment.type === "video" || attachment.type === "file"
+            attachment.type === "pdf" ||
+            attachment.type === "video" ||
+            attachment.type === "file"
               ? (attachment.meta as unknown as Partial<FileMeta>)
               : null,
           allowDownload: attachment.allow_download,

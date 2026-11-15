@@ -77,3 +77,50 @@ export function cleanSkills(values: readonly unknown[]): string[] {
   }
   return skills;
 }
+
+/**
+ * Turns what someone typed (a full LinkedIn URL, "linkedin.com/in/name" or
+ * just "name") into the one form we store: https://www.linkedin.com/in/name.
+ * Returns null when it is not a personal LinkedIn profile.
+ */
+export function normalizeLinkedIn(input: string): string | null {
+  const text = input.trim();
+  const match =
+    /^(?:https?:\/\/)?(?:[a-z]{2,3}\.)?linkedin\.com\/in\/([A-Za-z0-9_%-]+)\/?(?:[?#].*)?$/i.exec(text) ??
+    /^@?([A-Za-z0-9_%-]+)$/.exec(text);
+  if (!match || match[1].length > 100) return null;
+  return `https://www.linkedin.com/in/${match[1]}`;
+}
+
+/**
+ * Turns a GitHub profile URL, "github.com/name" or just "name" into the one
+ * form we store: https://github.com/name. Returns null for anything else.
+ */
+export function normalizeGitHub(input: string): string | null {
+  const text = input.trim();
+  const match =
+    /^(?:https?:\/\/)?(?:www\.)?github\.com\/([A-Za-z0-9-]+)\/?(?:[?#].*)?$/i.exec(text) ??
+    /^@?([A-Za-z0-9-]+)$/.exec(text);
+  if (!match || match[1].length > 39) return null;
+  return `https://github.com/${match[1]}`;
+}
+
+/**
+ * Turns a typed website ("mysite.dev" or a full URL) into an http(s) URL.
+ * Returns null when it is not a plausible web address.
+ */
+export function normalizeWebsite(input: string): string | null {
+  const text = input.trim();
+  if (!text || /\s/.test(text)) return null;
+  const withScheme = /^[a-z][a-z0-9+.-]*:/i.test(text) ? text : `https://${text}`;
+  let url: URL;
+  try {
+    url = new URL(withScheme);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+  if (!url.hostname.includes(".") || url.username || url.password) return null;
+  const href = url.href;
+  return href.length <= 200 && !/\s/.test(href) ? href : null;
+}

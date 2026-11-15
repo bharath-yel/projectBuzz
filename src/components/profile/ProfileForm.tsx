@@ -18,6 +18,9 @@ export type ProfileFormValues = {
   major: string;
   year: string;
   bio: string;
+  linkedin: string;
+  github: string;
+  website: string;
   skills: string[];
   avatarUrl: string | null;
 };
@@ -37,6 +40,9 @@ export function ProfileForm({ mode, userId, initial }: ProfileFormProps) {
   const [major, setMajor] = useState(initial.major);
   const [year, setYear] = useState(initial.year);
   const [bio, setBio] = useState(initial.bio);
+  const [linkedin, setLinkedin] = useState(initial.linkedin);
+  const [github, setGithub] = useState(initial.github);
+  const [website, setWebsite] = useState(initial.website);
   const [skills, setSkills] = useState(initial.skills);
   const [avatarUrl, setAvatarUrl] = useState(initial.avatarUrl);
   const [uploading, setUploading] = useState(false);
@@ -138,6 +144,61 @@ export function ProfileForm({ mode, userId, initial }: ProfileFormProps) {
         />
       </Field>
 
+      <Field htmlFor="linkedin" label="LinkedIn" hint="Optional" error={errors.linkedin}>
+        <input
+          id="linkedin"
+          name="linkedin"
+          type="url"
+          inputMode="url"
+          autoComplete="url"
+          autoCapitalize="none"
+          spellCheck={false}
+          placeholder="linkedin.com/in/yourname"
+          value={linkedin}
+          onChange={(event) => setLinkedin(event.target.value)}
+          aria-invalid={errors.linkedin ? true : undefined}
+          aria-describedby={describedBy("linkedin", Boolean(errors.linkedin))}
+          className={inputClass}
+        />
+      </Field>
+
+      <Field htmlFor="github" label="GitHub" hint="Optional" error={errors.github}>
+        <input
+          id="github"
+          name="github"
+          type="text"
+          inputMode="url"
+          autoComplete="off"
+          autoCapitalize="none"
+          spellCheck={false}
+          placeholder="github.com/yourname"
+          value={github}
+          onChange={(event) => setGithub(event.target.value)}
+          aria-invalid={errors.github ? true : undefined}
+          aria-describedby={describedBy("github", Boolean(errors.github))}
+          className={inputClass}
+        />
+      </Field>
+
+      <Field htmlFor="website" label="Website" hint="Optional" error={errors.website}>
+        <input
+          id="website"
+          name="website"
+          type="text"
+          inputMode="url"
+          autoComplete="url"
+          autoCapitalize="none"
+          spellCheck={false}
+          maxLength={200}
+          placeholder="yourname.dev"
+          value={website}
+          onChange={(event) => setWebsite(event.target.value)}
+          aria-invalid={errors.website ? true : undefined}
+          aria-describedby={describedBy("website", Boolean(errors.website))}
+          className={inputClass}
+        />
+      </Field>
+
       <Field htmlFor="skills" label="Skills" hint="Optional">
         <SkillsInput id="skills" value={skills} onChange={setSkills} />
       </Field>
@@ -160,7 +221,7 @@ export function ProfileForm({ mode, userId, initial }: ProfileFormProps) {
               ? "Uploading photo…"
               : mode === "edit"
                 ? "Save changes"
-                : "Finish and go to the feed"}
+                : "Finish and go to Buzzing Now"}
         </button>
         {mode === "edit" ? (
           <Link href="/profile" className={`${buttonSecondary} w-full sm:w-auto`}>

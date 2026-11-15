@@ -33,3 +33,14 @@ export async function getFollowerCount(
     .eq("target_id", targetId);
   return count ?? 0;
 }
+
+/** How many people one user follows. Followed projects and tags don't count. */
+export async function getFollowingCount(userId: string): Promise<number> {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("follows")
+    .select("*", { count: "exact", head: true })
+    .eq("follower_id", userId)
+    .eq("target_type", "user");
+  return count ?? 0;
+}

@@ -11,17 +11,63 @@
   --color-muted: #5b6770;
   --color-border: #e4e2da;
 
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-dm-sans);
+  --font-display: var(--font-bungee), var(--font-dm-sans), system-ui, sans-serif;
   --font-mono: var(--font-geist-mono);
 }
 
 html {
   -webkit-text-size-adjust: 100%;
+  /* Bungee has one weight: never let the browser smear it into a fake bold. */
+  font-synthesis-weight: none;
+}
+
+/* Every heading uses the display face; body text stays in DM Sans. */
+@layer base {
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-bungee), var(--font-dm-sans), system-ui, sans-serif;
+  }
 }
 
 body {
   background: var(--color-surface);
   color: var(--color-foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-dm-sans), system-ui, sans-serif;
   -webkit-tap-highlight-color: transparent;
+}
+
+/* The sticker tray grows out of its button. */
+@keyframes sticker-tray-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.92);
+  }
+}
+
+/* Feed banner bees: each lane slides its bee from off the left edge to off the right. */
+@keyframes bee-fly {
+  from {
+    transform: translateX(-40px);
+  }
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes bee-bob {
+  0%,
+  100% {
+    transform: translateY(-3px) rotate(-5deg);
+  }
+  50% {
+    transform: translateY(3px) rotate(5deg);
+  }
+}
+
+@keyframes bee-wing {
+  50% {
+    transform: scaleY(0.55);
+  }
 }

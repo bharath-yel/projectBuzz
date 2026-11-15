@@ -34,6 +34,9 @@ async function EditForm() {
         major: profile.major ?? "",
         year: profile.year ?? "",
         bio: profile.bio ?? "",
+        linkedin: profile.linkedin_url ?? "",
+        github: profile.github_url ?? "",
+        website: profile.website_url ?? "",
         skills: profile.skills,
         avatarUrl: profile.avatar_url,
       }}

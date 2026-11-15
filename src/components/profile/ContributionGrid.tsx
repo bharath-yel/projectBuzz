@@ -36,13 +36,9 @@ export function ContributionGrid({ weeks }: { weeks: ActivityWeek[] }) {
   ];
 
   return (
-    <div className="rounded-2xl border border-border bg-background p-4">
-      <p className="mb-3 text-sm text-muted">
-        Posted in <span className="font-semibold text-gt-navy">{active}</span> of the last{" "}
-        {weeks.length} weeks
-      </p>
+    <div>
       <ol
-        className="grid gap-1.5"
+        className="grid gap-1"
         style={{ gridTemplateColumns: "repeat(13, minmax(0, 1fr))" }}
         aria-label="Posting activity by week, oldest first"
       >
@@ -58,15 +54,19 @@ export function ContributionGrid({ weeks }: { weeks: ActivityWeek[] }) {
           </li>
         ))}
       </ol>
-      <ul className="mt-3 flex flex-wrap gap-x-3 gap-y-1.5 text-xs text-muted" aria-label="Legend">
+      <p className="mt-2 text-xs text-muted">
+        Posted in <span className="font-semibold text-gt-navy">{active}</span> of the last{" "}
+        {weeks.length} weeks
+      </p>
+      <ul className="mt-1.5 flex flex-wrap gap-x-2.5 gap-y-1 text-[11px] text-muted" aria-label="Legend">
         {legend.map((item) => (
-          <li key={item.label} className="flex items-center gap-1.5">
-            <span aria-hidden className={`h-3 w-3 rounded-[3px] ${item.className}`} />
+          <li key={item.label} className="flex items-center gap-1">
+            <span aria-hidden className={`h-2.5 w-2.5 rounded-[3px] ${item.className}`} />
             {item.label}
           </li>
         ))}
-        <li className="flex items-center gap-1.5">
-          <span aria-hidden className="h-3 w-3 rounded-[3px] bg-surface ring-2 ring-gt-gold" />
+        <li className="flex items-center gap-1">
+          <span aria-hidden className="h-2.5 w-2.5 rounded-[3px] bg-surface ring-2 ring-gt-gold" />
           This week
         </li>
       </ul>

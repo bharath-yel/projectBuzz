@@ -6,7 +6,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { PostCard } from "@/components/posts/PostCard";
 import { StreakBadge } from "@/components/StreakBadge";
 import { buttonPrimary } from "@/components/ui/styles";
-import { STAGE_LABEL } from "@/lib/projects/constants";
+import { STAGE_LABEL, STATUS_BOX, STATUS_DOT, STATUS_LABEL } from "@/lib/projects/constants";
 import type { ProjectDetail, TimelinePost } from "@/lib/projects/queries";
 
 type ProjectViewProps = {
@@ -20,9 +20,11 @@ type ProjectViewProps = {
   action?: ReactNode;
   /** Shown under the people list: contributor management for the owner, or "leave" for a contributor. */
   manage?: ReactNode;
+  /** The owner's control for changing the project's status. */
+  statusControl?: ReactNode;
 };
 
-export function ProjectView({ project, posts, canPost, action, streak, manage }: ProjectViewProps) {
+export function ProjectView({ project, posts, canPost, action, streak, manage, statusControl }: ProjectViewProps) {
   const people = [
     { ...project.owner, label: "Owner" },
     ...project.contributors.map((person) => ({
@@ -58,9 +60,26 @@ export function ProjectView({ project, posts, canPost, action, streak, manage }:
         <div className="p-5">
           <div className="flex items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+              <span
+                className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-gt-navy ${STATUS_BOX[project.status]}`}
+              >
+                <span aria-hidden className={`h-2 w-2 rounded-full ${STATUS_DOT[project.status]}`} />
+                {STATUS_LABEL[project.status]}
+              </span>
               <span className="rounded-full bg-gt-gold/30 px-2.5 py-1 text-gt-navy">
                 {STAGE_LABEL[project.stage]}
               </span>
+              {project.seeking_collaborators ? (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-gt-navy px-2.5 py-1 text-gt-navy">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0">
+                  <circle cx="9" cy="8" r="3.5" />
+                  <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+                  <path d="M19 8v6" />
+                  <path d="M16 11h6" />
+                </svg>
+                  Looking for collaborators
+                </span>
+              ) : null}
               {project.visibility === "private" ? (
                 <span className="rounded-full bg-gt-navy px-2.5 py-1 text-white">Private</span>
               ) : null}
@@ -108,6 +127,7 @@ export function ProjectView({ project, posts, canPost, action, streak, manage }:
               </li>
             ))}
           </ul>
+          {statusControl}
           {manage}
         </div>
       </header>

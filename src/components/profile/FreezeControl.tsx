@@ -2,7 +2,6 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { buttonSecondary } from "@/components/ui/styles";
 import { spendStreakFreeze } from "@/lib/streaks/actions";
 
 type FreezeControlProps = {
@@ -30,25 +29,26 @@ export function FreezeControl({ freezesLeft, freezableWeek, currentWeek }: Freez
     });
   }
 
+  const canFreeze = freezesLeft > 0 && freezableWeek !== null;
+
   return (
-    <div className="mt-3 rounded-2xl border border-border bg-background p-4">
-      <p className="text-sm font-semibold text-gt-navy">
-        {freezesLeft} streak {freezesLeft === 1 ? "freeze" : "freezes"} left this semester
-      </p>
-      <p className="mt-0.5 text-sm leading-relaxed text-muted">
-        {freezesLeft === 0
-          ? "You've used both. You get two more next semester."
-          : freezableWeek
-            ? `A freeze keeps your streak alive through a week with no post. You can use one on ${which}.`
-            : "A freeze keeps your streak alive through a week with no post. You don't need one right now."}
-      </p>
-      {freezesLeft > 0 && freezableWeek ? (
-        <button type="button" onClick={freeze} disabled={pending} className={`${buttonSecondary} mt-3`}>
-          {pending ? "Freezing…" : `Freeze ${which}`}
-        </button>
-      ) : null}
+    <div className="mt-2 border-t border-border pt-2 text-xs leading-relaxed text-muted">
+      <div className="flex flex-wrap items-center justify-between gap-x-3">
+        <p>
+          <span className="font-semibold text-gt-navy">
+            {freezesLeft} streak {freezesLeft === 1 ? "freeze" : "freezes"}
+          </span>{" "}
+          left this semester
+        </p>
+        {canFreeze ? (
+          <button type="button" onClick={freeze} disabled={pending} className="inline-flex min-h-11 items-center rounded-lg text-sm font-semibold text-gt-navy underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gt-navy disabled:cursor-not-allowed disabled:text-muted disabled:no-underline">
+            {pending ? "Freezing…" : `Freeze ${which}`}
+          </button>
+        ) : null}
+      </div>
+      {canFreeze ? <p>A freeze keeps your streak alive through a week with no post.</p> : null}
       {error ? (
-        <p role="alert" className="mt-2 text-sm text-red-700">
+        <p role="alert" className="mt-1 text-red-700">
           {error}
         </p>
       ) : null}

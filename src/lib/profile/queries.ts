@@ -6,6 +6,8 @@ export type ProfileProject = {
   title: string;
   problem: string | null;
   stage: Enums<"project_stage">;
+  status: Enums<"project_status">;
+  seeking_collaborators: boolean;
   visibility: Enums<"project_visibility">;
   cover_url: string | null;
   created_at: string;
@@ -16,7 +18,7 @@ export type ProfileProject = {
 };
 
 const PROJECT_COLUMNS =
-  "id, title, problem, stage, visibility, cover_url, created_at" as const;
+  "id, title, problem, stage, status, seeking_collaborators, visibility, cover_url, created_at" as const;
 
 /**
  * Projects a person owns or contributes to, newest first. Row level security

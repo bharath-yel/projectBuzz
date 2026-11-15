@@ -14,6 +14,8 @@ export type ProjectDetail = {
   title: string;
   problem: string | null;
   stage: Enums<"project_stage">;
+  status: Enums<"project_status">;
+  seeking_collaborators: boolean;
   visibility: Enums<"project_visibility">;
   cover_url: string | null;
   created_at: string;
@@ -50,6 +52,8 @@ export type TimelinePost = {
   commentCount: number;
   /** Top-level comments only: the answers to a feedback question. */
   answerCount: number;
+  /** True when the signed-in user has already answered the feedback question. */
+  answeredByMe: boolean;
 };
 
 /** All tags, for the picker. Small, fixed reference data. */
@@ -90,7 +94,7 @@ export async function getProject(projectId: string): Promise<ProjectDetail | nul
   const { data, error } = await supabase
     .from("projects")
     .select(
-      `id, title, problem, stage, visibility, cover_url, created_at,
+      `id, title, problem, stage, status, seeking_collaborators, visibility, cover_url, created_at,
        owner:profiles!projects_owner_id_fkey(id, name, avatar_url),
        project_members(role_label, profile:profiles!project_members_user_id_fkey(id, name, avatar_url)),
        project_tags(tag:tags(id, type, name, slug))`,
